@@ -26,6 +26,68 @@ from app.core.strategies import MovingAverageCrossover
 from app.core.backtester import BacktestEngine
 
 
+def get_valid_symbol(api_key):
+    """Prompt for stock symbol and validate it exists."""
+    while True:
+        symbol = input("\nEnter stock symbol to backtest (e.g., AAPL, TSLA): ").upper().strip()
+        
+        if not symbol:
+            print("❌ Symbol cannot be empty. Please try again.")
+            continue
+        
+        # Try to fetch data to validate symbol exists
+        print(f"Validating {symbol}...")
+        fetcher = DataFetcher(api_key)
+        
+        try:
+            data = fetcher.get_daily_data(symbol, outputsize="compact")
+            print(f"✅ {symbol} is valid!")
+            return symbol, data
+        except ValueError as e:
+            print(f"❌ Error: {e}")
+            print(f"'{symbol}' may not exist or there was an API issue.")
+            retry = input("Try another symbol? (y/n): ").lower()
+            if retry != 'y':
+                print("Exiting...")
+                sys.exit(0)
+
+
+def get_capital():
+    """Prompt for initial capital with validation."""
+    while True:
+        capital_input = input("\nEnter initial capital (default $10,000): ").strip()
+        
+        if not capital_input:
+            return 10000
+        
+        try:
+            capital = float(capital_input.replace('$', '').replace(',', ''))
+            if capital <= 0:
+                print("❌ Capital must be positive. Please try again.")
+                continue
+            return capital
+        except ValueError:
+            print("❌ Invalid number. Please enter a valid amount (e.g., 10000 or $10,000)")
+
+
+def get_strategy_params():
+    """Prompt for strategy parameters or use defaults."""
+    print("\n📊 Strategy Configuration (Moving Average Crossover)")
+    print("Press Enter to use defaults")
+    
+    short_input = input("Short MA window (default 20): ").strip()
+    short_window = int(short_input) if short_input else 20
+    
+    long_input = input("Long MA window (default 50): ").strip()
+    long_window = int(long_input) if long_input else 50
+    
+    if short_window >= long_window:
+        print("⚠️  Warning: Short window should be less than long window. Using defaults (20/50).")
+        return 20, 50
+    
+    return short_window, long_window
+
+
 def main():
     """
     Main function to run a backtest.
@@ -37,25 +99,12 @@ def main():
     4. Display results
     """
     
-    # ========== CONFIGURATION ==========
-    # API key is loaded from .env file (secure!)
-    API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")
-    
-    # What stock to test?
-    SYMBOL = "AAPL"  # Try: AAPL, MSFT, GOOGL, TSLA, etc.
-    
-    # Starting capital
-    INITIAL_CAPITAL = 10000  # $10,000
-    
-    # Strategy parameters
-    SHORT_WINDOW = 20  # Fast moving average (days)
-    LONG_WINDOW = 50   # Slow moving average (days)
-    # ===================================
-    
-    
     print("\n" + "="*60)
     print("TRADING BACKTESTER")
     print("="*60)
+    
+    # Get API key
+    API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")
     
     # Check if API key is set
     if not API_KEY or API_KEY == "demo" or API_KEY == "your_api_key_here":
@@ -69,10 +118,21 @@ def main():
         API_KEY = "demo"
     
     try:
-        # Step 1: Fetch historical data
-        print(f"\n📊 Step 1: Fetching data for {SYMBOL}...")
-        fetcher = DataFetcher(API_KEY)
-        data = fetcher.get_daily_data(SYMBOL, outputsize="compact")
+        # Get configuration from user
+        SYMBOL, data = get_valid_symbol(API_KEY)
+        INITIAL_CAPITAL = get_capital()
+        SHORT_WINDOW, LONG_WINDOW = get_strategy_params()
+        
+        print("\n" + "="*60)
+        print("STARTING BACKTEST")
+        print("="*60)
+        print(f"Symbol: {SYMBOL}")
+        print(f"Capital: ${INITIAL_CAPITAL:,.2f}")
+        print(f"Strategy: MA Crossover ({SHORT_WINDOW}/{LONG_WINDOW})")
+        print("="*60)
+        
+        # Data already fetched during validation
+        print(f"\n✅ Step 1: Data loaded ({len(data)} days)")
         
         # Step 2: Apply strategy
         print(f"\n🎯 Step 2: Applying strategy...")
@@ -111,18 +171,21 @@ def main():
         print("="*60 + "\n")
         
         # Optional: Show trade history
-        show_trades = input("Would you like to see all trades? (y/n): ").lower()
-        if show_trades == 'y':
-            print("\n📋 Trade History:")
-            for i, trade in enumerate(results['trades'], 1):
-                print(f"   {i}. {trade}")
+        try:
+            show_trades = input("Would you like to see all trades? (y/n): ").lower()
+            if show_trades == 'y':
+                print("\n📋 Trade History:")
+                for i, trade in enumerate(results['trades'], 1):
+                    print(f"   {i}. {trade}")
+        except EOFError:
+            # Handle piped input or Ctrl+D
+            pass
         
     except ValueError as e:
         print(f"\n❌ Error: {e}")
-        print("\nTroubleshooting:")
-        print("1. Make sure you have a valid API key")
-        print("2. Check your internet connection")
-        print("3. Try a different stock symbol")
+    except KeyboardInterrupt:
+        print("\n\n👋 Backtest cancelled by user.")
+        sys.exit(0)
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
         import traceback
