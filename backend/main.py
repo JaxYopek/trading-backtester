@@ -22,20 +22,24 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.services.data_fetcher import DataFetcher
-from app.core.strategies import MovingAverageCrossover
+from app.core.strategies import MovingAverageCrossover, RSIStrategy
+
 
 
 def choose_strategy():
     """Prompt user to select a strategy."""
     print("\nAvailable Strategies:")
     print("1. Moving Average Crossover")
+    print("2. RSI Strategy")
     # Future: Add more strategies here
     while True:
         choice = input("\nWhich strategy would you like to use? (1): ").strip()
         if choice in ("", "1"):
             return "ma_crossover"
+        elif choice == "2":
+            return "rsi_strategy"
         else:
-            print("Invalid choice. Please enter 1 (more coming soon!)")
+            print("Invalid choice. Please enter 1 or 2")
 from app.core.backtester import BacktestEngine
 
 
@@ -82,7 +86,7 @@ def get_capital():
             print("Invalid number. Please enter a valid amount (e.g., 10000 or $10,000)")
 
 
-def get_strategy_params(data_length=100):
+def get_ma_params(data_length=100):
     """Prompt for strategy parameters or use defaults.
     
     Args:
@@ -90,7 +94,7 @@ def get_strategy_params(data_length=100):
     """
     print("\nStrategy Configuration (Moving Average Crossover)")
     print("Press Enter to use defaults")
-    print(f"📊 Hint: You have {data_length} days of data")
+    print(f" Hint: You have {data_length} days of data")
     print("   (Long MA window should be less than available data)")
     
     short_input = input("Short MA window (default 20): ").strip()
@@ -101,22 +105,38 @@ def get_strategy_params(data_length=100):
     
     # Validate parameters
     if short_window >= long_window:
-        print("❌ Warning: Short window should be less than long window. Using defaults (20/50).")
+        print(" Warning: Short window should be less than long window. Using defaults (20/50).")
         return 20, 50
     
     if long_window > data_length:
-        print(f"❌ Error: Long window ({long_window}) exceeds data length ({data_length}).")
+        print(f" Error: Long window ({long_window}) exceeds data length ({data_length}).")
         print(f"   This won't generate any signals. Using defaults (20/50).")
         return 20, 50
     
     # Warn if windows are too close to data length
     if long_window > data_length * 0.8:
-        print(f"⚠️  Warning: Long window ({long_window}) means you'll have very few signals.")
+        print(f"  Warning: Long window ({long_window}) means you'll have very few signals.")
         print(f"   Recommended: Use long window under {int(data_length * 0.6)} for better results.")
         print(f"   Using smaller defaults (20/50) instead.")
         return 20, 50
     
     return short_window, long_window
+
+def get_rsi_params(data_length=100):
+    """Prompt for RSI strategy parameters or use defaults."""
+    print("\nStrategy Configuration (RSI Strategy)")
+    print("Press Enter to use defaults")
+    print(f" Hint: You have {data_length} days of data")
+    
+    rsi_input = input("RSI period (default 14): ").strip()
+    rsi_period = int(rsi_input) if rsi_input else 14
+    
+    if rsi_period >= data_length:
+        print(f" Error: RSI period ({rsi_period}) exceeds data length ({data_length}).")
+        print(f"   This won't generate any signals. Using default (14).")
+        return 14
+    
+    return rsi_period
 
 
 def main():
@@ -154,13 +174,18 @@ def main():
         INITIAL_CAPITAL = get_capital()
         strategy_choice = choose_strategy()
         if strategy_choice == "ma_crossover":
-            SHORT_WINDOW, LONG_WINDOW = get_strategy_params(data_length=len(data))
+            SHORT_WINDOW, LONG_WINDOW = get_ma_params(data_length=len(data))
             strategy = MovingAverageCrossover(
                 short_window=SHORT_WINDOW,
                 long_window=LONG_WINDOW
             )
             strategy_desc = f"MA Crossover ({SHORT_WINDOW}/{LONG_WINDOW})"
-        # Future: elif strategy_choice == "rsi": ...
+        elif strategy_choice == "rsi_strategy":
+            RSI_PERIOD = get_rsi_params(data_length=len(data))
+            strategy = RSIStrategy(
+                rsi_period=RSI_PERIOD
+            )
+            strategy_desc = f"RSI Strategy ({RSI_PERIOD})"
         else:
             print("Unknown strategy. Exiting.")
             sys.exit(1)

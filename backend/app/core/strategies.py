@@ -128,3 +128,96 @@ if __name__ == "__main__":
     
     print(f"\nTotal BUY signals: {buy_signals}")
     print(f"Total SELL signals: {sell_signals}")
+
+class RSIStrategy:
+    """
+    RSI Strategy
+    ==============
+    
+    Concept:
+    - RSI (Relative Strength Index) is a momentum oscillator that measures speed and change of price movements.
+    - RSI values range from 0 to 100.
+    - Common thresholds:
+      - RSI > 70: Overbought (potential sell signal)
+      - RSI < 30: Oversold (potential buy signal)
+    
+    Trading Rules:
+    - BUY when RSI crosses above 30 (from oversold to neutral)
+    - SELL when RSI crosses below 70 (from overbought to neutral)
+    
+    Example:
+    - If RSI goes from 25 to 35 → BUY
+    - If RSI goes from 75 to 65 → SELL
+    """
+    
+    def __init__(self, rsi_period: int = 14):
+        """
+        Initialize the strategy.
+        
+        Args:
+            rsi_period: Period for calculating RSI (default: 14 days)
+        """
+        self.rsi_period = rsi_period
+        self.name = f"RSI Strategy ({rsi_period}-day)"
+    
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Generate buy/sell signals based on RSI.
+        
+        Args:
+            data: DataFrame with price data (must have 'close' column)
+        
+        Returns:
+            DataFrame with added columns:
+            - 'rsi': Calculated RSI values
+            - 'signal': 1 for BUY, -1 for SELL, 0 for HOLD
+        
+        How it works:
+        1. Calculate price changes and gains/losses
+        2. Compute average gain and loss over the specified period
+        3. Calculate RSI using the formula: RSI = 100 - (100 / (1 + RS))
+           where RS = Average Gain / Average Loss
+        4. Generate buy/sell signals based on crossing thresholds
+        """
+        df = data.copy()
+        
+        # Step 1: Calculate price changes
+        df['change'] = df['close'].diff()
+        
+        # Step 2: Separate gains and losses
+        df['gain'] = df['change'].apply(lambda x: x if x > 0 else 0)
+        df['loss'] = df['change'].apply(lambda x: -x if x < 0 else 0)
+        
+        # Step 3: Calculate average gain and loss
+        df['avg_gain'] = df['gain'].rolling(window=self.rsi_period).mean()
+        df['avg_loss'] = df['loss'].rolling(window=self.rsi_period).mean()
+        
+        # Step 4: Calculate RS (Relative Strength)
+        # Handle division by zero
+        df['rs'] = df['avg_gain'] / df['avg_loss'].replace(0, 1e-10)
+        
+        # Step 5: Calculate RSI
+        # RSI = 100 - (100 / (1 + RS))
+        df['rsi'] = 100 - (100 / (1 + df['rs']))
+        
+        # Step 6: Generate signals based on RSI thresholds
+        # Buy signal: RSI crosses above 30 (from oversold)
+        # Sell signal: RSI crosses below 70 (from overbought)
+        
+        df['signal'] = 0
+        
+        # Check if RSI crossed above 30 (BUY)
+        # Compare current RSI to previous RSI
+        rsi_prev = df['rsi'].shift(1)
+        df.loc[(df['rsi'] > 30) & (rsi_prev <= 30), 'signal'] = 1
+        
+        # Check if RSI crossed below 70 (SELL)
+        df.loc[(df['rsi'] < 70) & (rsi_prev >= 70), 'signal'] = -1
+        
+        # Clean up and drop NaN rows
+        df = df.dropna()
+        
+        return df
+    
+    def __str__(self):
+        return self.name

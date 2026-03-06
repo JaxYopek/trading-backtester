@@ -95,7 +95,7 @@ class BacktestEngine:
                     cash -= cost
                     trade = Trade(date, 'BUY', price, shares)
                     self.trades.append(trade)
-                    print(f"📈 {trade}")
+                    print(f"buy {trade}")
             
             # SELL SIGNAL (signal = -1)
             elif signal == -1 and shares > 0:
@@ -104,7 +104,7 @@ class BacktestEngine:
                 cash += proceeds
                 trade = Trade(date, 'SELL', price, shares)
                 self.trades.append(trade)
-                print(f"📉 {trade}")
+                print(f"sell {trade}")
                 shares = 0
             
             # Calculate portfolio value (cash + value of stocks)
