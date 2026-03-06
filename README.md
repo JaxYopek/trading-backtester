@@ -29,15 +29,34 @@ Or use the setup script:
 
 Get a free API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key). It's instant and free for up to 500 calls/day.
 
-### 3. Configure
+### 3. Configure API Key (Securely!)
 
-Edit `backend/main.py` and add your API key:
+**Important**: Never hardcode API keys in your code!
 
-```python
-API_KEY = "your_actual_key_here"
+```bash
+cd backend
+
+# Copy the example env file
+cp .env.example .env
+
+# Edit .env and add your actual API key
+# The .env file is gitignored and won't be committed to GitHub
 ```
 
-### 4. Run a Backtest
+Your `.env` file should look like:
+```
+ALPHA_VANTAGE_API_KEY=your_actual_key_here
+```
+
+### 4. Install python-dotenv
+
+```bash
+pip install python-dotenv
+```
+
+This library loads environment variables from the `.env` file.
+
+### 5. Run a Backtest
 
 ```bash
 cd backend

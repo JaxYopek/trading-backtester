@@ -5,12 +5,21 @@ This is the entry point to run backtests.
 
 How to use:
 1. Get a free API key from https://www.alphavantage.co/support/#api-key
-2. Set your API key below (replace 'YOUR_API_KEY_HERE')
-3. Run: python main.py
+2. Copy .env.example to .env
+3. Add your API key to .env file
+4. Run: python main.py
 """
 
 import sys
+import os
+from pathlib import Path
+
+# Add backend to path
 sys.path.append('/Users/jaxyopek/Desktop/Trading Backtester/backend')
+
+# Load environment variables
+from dotenv import load_dotenv
+load_dotenv()
 
 from app.services.data_fetcher import DataFetcher
 from app.core.strategies import MovingAverageCrossover
@@ -29,8 +38,8 @@ def main():
     """
     
     # ========== CONFIGURATION ==========
-    # Get your free API key at: https://www.alphavantage.co/support/#api-key
-    API_KEY = "YOUR_API_KEY_HERE"  # ← PUT YOUR API KEY HERE
+    # API key is loaded from .env file (secure!)
+    API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY", "demo")
     
     # What stock to test?
     SYMBOL = "AAPL"  # Try: AAPL, MSFT, GOOGL, TSLA, etc.
@@ -49,10 +58,13 @@ def main():
     print("="*60)
     
     # Check if API key is set
-    if API_KEY == "YOUR_API_KEY_HERE" or API_KEY == "demo":
+    if not API_KEY or API_KEY == "demo" or API_KEY == "your_api_key_here":
         print("\n⚠️  WARNING: Using demo API key!")
         print("   Demo key only works with IBM stock.")
-        print("   Get your free key at: https://www.alphavantage.co/support/#api-key")
+        print("\n   To use your own key:")
+        print("   1. Copy .env.example to .env")
+        print("   2. Add your API key to .env")
+        print("   3. Get free key at: https://www.alphavantage.co/support/#api-key")
         SYMBOL = "IBM"
         API_KEY = "demo"
     

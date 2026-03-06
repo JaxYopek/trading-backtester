@@ -37,7 +37,10 @@ env/
 
 # API Keys (important!)
 .env
+*.env
+!.env.example
 config_local.py
+*_local.py
 
 # macOS
 .DS_Store
