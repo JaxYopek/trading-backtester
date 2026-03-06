@@ -6,10 +6,10 @@ A Python-based backtesting system I built to learn about algorithmic trading and
 
 I created this as a learning project to understand how trading strategies work before risking real money. The system includes:
 
-- 📊 Historical data fetcher using Alpha Vantage API
-- 🎯 Moving Average Crossover strategy implementation
-- 💰 Backtesting engine with performance metrics
-- 📈 Trade analysis and comparison tools
+-  Historical data fetcher using Alpha Vantage API
+-  Moving Average Crossover strategy implementation
+-  Backtesting engine with performance metrics
+-  Trade analysis and comparison tools
 
 ## Quick Start
 
@@ -116,11 +116,6 @@ SHORT_WINDOW = 20         # Fast moving average period
 LONG_WINDOW = 50          # Slow moving average period
 ```
 
-I've tested combinations like:
-- **10/30 MA**: More aggressive, trades more frequently
-- **20/50 MA**: Balanced approach
-- **50/200 MA**: Conservative "Golden Cross" strategy
-
 ## Project Structure
 
 ```
@@ -137,35 +132,16 @@ backend/
 └── requirements.txt           # Python dependencies
 ```
 
-## Advanced Usage
-
-I created `examples.py` with more sophisticated analysis:
-
-**Compare Strategies**: Test multiple MA window combinations
-```bash
-python examples.py  # Choose option 1
-```
-
-**Multi-Stock Analysis**: Test the same strategy across different stocks
-```bash
-python examples.py  # Choose option 2
-```
-
-**Trade Analysis**: Deep dive into individual trade performance
-```bash
-python examples.py  # Choose option 3
-```
-
 ## What I Learned
 
 Building this project taught me:
 
-- 📊 **Data Analysis**: Working with pandas DataFrames and time series data
-- 📈 **Technical Indicators**: Understanding moving averages and crossover signals  
-- 💰 **Trading Mechanics**: Portfolio management, position sizing, trade execution
-- 📉 **Risk Metrics**: Drawdown, return percentages, performance measurement
-- 🔧 **System Design**: Modular architecture, separation of concerns
-- 🐍 **Python Skills**: APIs, data structures, object-oriented programming
+-  **Data Analysis**: Working with pandas DataFrames and time series data
+-  **Technical Indicators**: Understanding moving averages and crossover signals  
+-  **Trading Mechanics**: Portfolio management, position sizing, trade execution
+-  **Risk Metrics**: Drawdown, return percentages, performance measurement
+-  **System Design**: Modular architecture, separation of concerns
+-  **Python Skills**: APIs, data structures, object-oriented programming
 
 ## Future Enhancements
 
@@ -178,7 +154,7 @@ Planning to add:
 - [ ] More comprehensive trade statistics
 
 ### Phase 3: Additional Strategies
-- [ ] RSI (Relative Strength Index)
+- [x] RSI (Relative Strength Index)
 - [ ] Bollinger Bands
 - [ ] MACD (Moving Average Convergence Divergence)
 - [ ] Multiple strategy combinations
@@ -207,14 +183,14 @@ Helpful resources I used while building this:
 
 ## Notes
 
-⚠️ **Important Disclaimers:**
+ **Important Disclaimers:**
 
 - **Educational Purpose**: This project is for learning only
 - **Not Financial Advice**: Past performance doesn't guarantee future results
 - **Paper Trading First**: Test thoroughly before considering real money
 - **Risk Management**: Always understand the risks involved in trading
 
-⚠️ **API Rate Limits:**
+ **API Rate Limits:**
 - Alpha Vantage free tier: 5 calls/minute, 500/day
 - The system respects these limits in multi-stock testing
 
