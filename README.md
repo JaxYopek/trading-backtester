@@ -71,10 +71,17 @@ I structured the system into modular components:
 Handles API communication with Alpha Vantage to fetch historical price data (Open, High, Low, Close, Volume) and converts it into pandas DataFrames for analysis.
 
 ### 2. **Strategy Module** (`app/core/strategies.py`)
-Implements the Moving Average Crossover strategy - one of the most fundamental trading strategies:
+Implements:
+
+Moving Average Crossover strategy:
 - **BUY** when short-term MA crosses above long-term MA (bullish signal)
 - **SELL** when short-term MA crosses below long-term MA (bearish signal)
 - Configurable window periods (I use 20/50 days by default)
+
+Relative Strength Index (RSI):
+- **BUY** when RSI rises above the oversold threshold (e.g., 30), signaling upward momentum
+- **SELL** when RSI falls below the overbought threshold (e.g., 70), signaling downward momentum
+- Configurable RSI period and threshold levels (I use 14 days, 30/70 by default)
 
 ### 3. **Backtesting Engine** (`app/core/backtester.py`)
 Simulates trading by:
