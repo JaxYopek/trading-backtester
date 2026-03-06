@@ -105,17 +105,16 @@ def get_strategy_params(data_length=100):
         return 20, 50
     
     if long_window > data_length:
-        print(f"❌ Warning: Long window ({long_window}) exceeds data length ({data_length}).")
-        print(f"   Using default 50 instead (recommended for {data_length} days of data).")
+        print(f"❌ Error: Long window ({long_window}) exceeds data length ({data_length}).")
+        print(f"   This won't generate any signals. Using defaults (20/50).")
         return 20, 50
     
     # Warn if windows are too close to data length
     if long_window > data_length * 0.8:
-        print(f"⚠️  Warning: Long window ({long_window}) uses most of your data.")
-        print(f"   You may get few or no signals. Consider using smaller values.")
-        confirm = input("Continue anyway? (y/n): ").lower()
-        if confirm != 'y':
-            return get_strategy_params(data_length)
+        print(f"⚠️  Warning: Long window ({long_window}) means you'll have very few signals.")
+        print(f"   Recommended: Use long window under {int(data_length * 0.6)} for better results.")
+        print(f"   Using smaller defaults (20/50) instead.")
+        return 20, 50
     
     return short_window, long_window
 
