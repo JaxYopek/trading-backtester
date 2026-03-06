@@ -23,6 +23,19 @@ load_dotenv()
 
 from app.services.data_fetcher import DataFetcher
 from app.core.strategies import MovingAverageCrossover
+
+
+def choose_strategy():
+    """Prompt user to select a strategy."""
+    print("\nAvailable Strategies:")
+    print("1. Moving Average Crossover")
+    # Future: Add more strategies here
+    while True:
+        choice = input("\nWhich strategy would you like to use? (1): ").strip()
+        if choice in ("", "1"):
+            return "ma_crossover"
+        else:
+            print("Invalid choice. Please enter 1 (more coming soon!)")
 from app.core.backtester import BacktestEngine
 
 
@@ -69,10 +82,16 @@ def get_capital():
             print("Invalid number. Please enter a valid amount (e.g., 10000 or $10,000)")
 
 
-def get_strategy_params():
-    """Prompt for strategy parameters or use defaults."""
+def get_strategy_params(data_length=100):
+    """Prompt for strategy parameters or use defaults.
+    
+    Args:
+        data_length: Number of days of data available (used for validation)
+    """
     print("\nStrategy Configuration (Moving Average Crossover)")
     print("Press Enter to use defaults")
+    print(f"📊 Hint: You have {data_length} days of data")
+    print("   (Long MA window should be less than available data)")
     
     short_input = input("Short MA window (default 20): ").strip()
     short_window = int(short_input) if short_input else 20
@@ -80,9 +99,23 @@ def get_strategy_params():
     long_input = input("Long MA window (default 50): ").strip()
     long_window = int(long_input) if long_input else 50
     
+    # Validate parameters
     if short_window >= long_window:
-        print("Warning: Short window should be less than long window. Using defaults (20/50).")
+        print("❌ Warning: Short window should be less than long window. Using defaults (20/50).")
         return 20, 50
+    
+    if long_window > data_length:
+        print(f"❌ Warning: Long window ({long_window}) exceeds data length ({data_length}).")
+        print(f"   Using default 50 instead (recommended for {data_length} days of data).")
+        return 20, 50
+    
+    # Warn if windows are too close to data length
+    if long_window > data_length * 0.8:
+        print(f"⚠️  Warning: Long window ({long_window}) uses most of your data.")
+        print(f"   You may get few or no signals. Consider using smaller values.")
+        confirm = input("Continue anyway? (y/n): ").lower()
+        if confirm != 'y':
+            return get_strategy_params(data_length)
     
     return short_window, long_window
 
@@ -120,35 +153,40 @@ def main():
         # Get configuration from user
         SYMBOL, data = get_valid_symbol(API_KEY)
         INITIAL_CAPITAL = get_capital()
-        SHORT_WINDOW, LONG_WINDOW = get_strategy_params()
-        
+        strategy_choice = choose_strategy()
+        if strategy_choice == "ma_crossover":
+            SHORT_WINDOW, LONG_WINDOW = get_strategy_params(data_length=len(data))
+            strategy = MovingAverageCrossover(
+                short_window=SHORT_WINDOW,
+                long_window=LONG_WINDOW
+            )
+            strategy_desc = f"MA Crossover ({SHORT_WINDOW}/{LONG_WINDOW})"
+        # Future: elif strategy_choice == "rsi": ...
+        else:
+            print("Unknown strategy. Exiting.")
+            sys.exit(1)
+
         print("\n" + "="*60)
         print("STARTING BACKTEST")
         print("="*60)
         print(f"Symbol: {SYMBOL}")
         print(f"Capital: ${INITIAL_CAPITAL:,.2f}")
-        print(f"Strategy: MA Crossover ({SHORT_WINDOW}/{LONG_WINDOW})")
+        print(f"Strategy: {strategy_desc}")
         print("="*60)
-        
         # Data already fetched during validation
         print(f"\n Step 1: Data loaded ({len(data)} days)")
-        
+
         # Step 2: Apply strategy
         print(f"\n Step 2: Applying strategy...")
-        strategy = MovingAverageCrossover(
-            short_window=SHORT_WINDOW,
-            long_window=LONG_WINDOW
-        )
         signals = strategy.generate_signals(data)
-        
         print(f"   Strategy: {strategy}")
         print(f"   Generated signals for {len(signals)} days")
-        
+
         # Step 3: Run backtest
         print(f"\n Step 3: Running backtest simulation...")
         engine = BacktestEngine(initial_capital=INITIAL_CAPITAL)
         results = engine.run(signals)
-        
+
         # Step 4: Display results
         print("\n Step 4: Performance Summary")
         metrics = results['metrics']
@@ -158,17 +196,17 @@ def main():
         print(f"   Buy & Hold Return:   {metrics['buy_hold_return_pct']:.2f}%")
         print(f"   Max Drawdown:        {metrics['max_drawdown_pct']:.2f}%")
         print(f"   Number of Trades:    {metrics['num_trades']}")
-        
+
         # Performance comparison
         if metrics['total_return_pct'] > metrics['buy_hold_return_pct']:
             print(f"\n    Strategy OUTPERFORMED buy-and-hold by {metrics['total_return_pct'] - metrics['buy_hold_return_pct']:.2f}%")
         else:
             print(f"\n    Strategy UNDERPERFORMED buy-and-hold by {metrics['buy_hold_return_pct'] - metrics['total_return_pct']:.2f}%")
-        
+
         print("\n" + "="*60)
         print(" Backtest complete!")
         print("="*60 + "\n")
-        
+
         # Optional: Show trade history
         try:
             show_trades = input("Would you like to see all trades? (y/n): ").lower()
@@ -179,7 +217,7 @@ def main():
         except EOFError:
             # Handle piped input or Ctrl+D
             pass
-        
+
     except ValueError as e:
         print(f"\n Error: {e}")
     except KeyboardInterrupt:
