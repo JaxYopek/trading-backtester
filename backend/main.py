@@ -72,7 +72,7 @@ def main():
         # Step 1: Fetch historical data
         print(f"\n📊 Step 1: Fetching data for {SYMBOL}...")
         fetcher = DataFetcher(API_KEY)
-        data = fetcher.get_daily_data(SYMBOL, outputsize="full")
+        data = fetcher.get_daily_data(SYMBOL, outputsize="compact")
         
         # Step 2: Apply strategy
         print(f"\n🎯 Step 2: Applying strategy...")
