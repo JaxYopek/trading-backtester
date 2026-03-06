@@ -32,19 +32,18 @@ def get_valid_symbol(api_key):
         symbol = input("\nEnter stock symbol to backtest (e.g., AAPL, TSLA): ").upper().strip()
         
         if not symbol:
-            print("❌ Symbol cannot be empty. Please try again.")
+            print("Symbol cannot be empty. Please try again.")
             continue
         
         # Try to fetch data to validate symbol exists
-        print(f"Validating {symbol}...")
+        print(f"Fetching {symbol}...")
         fetcher = DataFetcher(api_key)
         
         try:
             data = fetcher.get_daily_data(symbol, outputsize="compact")
-            print(f"✅ {symbol} is valid!")
             return symbol, data
         except ValueError as e:
-            print(f"❌ Error: {e}")
+            print(f"Error: {e}")
             print(f"'{symbol}' may not exist or there was an API issue.")
             retry = input("Try another symbol? (y/n): ").lower()
             if retry != 'y':
@@ -63,16 +62,16 @@ def get_capital():
         try:
             capital = float(capital_input.replace('$', '').replace(',', ''))
             if capital <= 0:
-                print("❌ Capital must be positive. Please try again.")
+                print("Capital must be positive. Please try again.")
                 continue
             return capital
         except ValueError:
-            print("❌ Invalid number. Please enter a valid amount (e.g., 10000 or $10,000)")
+            print("Invalid number. Please enter a valid amount (e.g., 10000 or $10,000)")
 
 
 def get_strategy_params():
     """Prompt for strategy parameters or use defaults."""
-    print("\n📊 Strategy Configuration (Moving Average Crossover)")
+    print("\nStrategy Configuration (Moving Average Crossover)")
     print("Press Enter to use defaults")
     
     short_input = input("Short MA window (default 20): ").strip()
@@ -82,7 +81,7 @@ def get_strategy_params():
     long_window = int(long_input) if long_input else 50
     
     if short_window >= long_window:
-        print("⚠️  Warning: Short window should be less than long window. Using defaults (20/50).")
+        print("Warning: Short window should be less than long window. Using defaults (20/50).")
         return 20, 50
     
     return short_window, long_window
@@ -108,7 +107,7 @@ def main():
     
     # Check if API key is set
     if not API_KEY or API_KEY == "demo" or API_KEY == "your_api_key_here":
-        print("\n⚠️  WARNING: Using demo API key!")
+        print("\n  WARNING: Using demo API key!")
         print("   Demo key only works with IBM stock.")
         print("\n   To use your own key:")
         print("   1. Copy .env.example to .env")
@@ -132,10 +131,10 @@ def main():
         print("="*60)
         
         # Data already fetched during validation
-        print(f"\n✅ Step 1: Data loaded ({len(data)} days)")
+        print(f"\n Step 1: Data loaded ({len(data)} days)")
         
         # Step 2: Apply strategy
-        print(f"\n🎯 Step 2: Applying strategy...")
+        print(f"\n Step 2: Applying strategy...")
         strategy = MovingAverageCrossover(
             short_window=SHORT_WINDOW,
             long_window=LONG_WINDOW
@@ -146,12 +145,12 @@ def main():
         print(f"   Generated signals for {len(signals)} days")
         
         # Step 3: Run backtest
-        print(f"\n💰 Step 3: Running backtest simulation...")
+        print(f"\n Step 3: Running backtest simulation...")
         engine = BacktestEngine(initial_capital=INITIAL_CAPITAL)
         results = engine.run(signals)
         
         # Step 4: Display results
-        print("\n📈 Step 4: Performance Summary")
+        print("\n Step 4: Performance Summary")
         metrics = results['metrics']
         print(f"\n   Initial Capital:     ${results['initial_capital']:,.2f}")
         print(f"   Final Value:         ${results['final_value']:,.2f}")
@@ -162,19 +161,19 @@ def main():
         
         # Performance comparison
         if metrics['total_return_pct'] > metrics['buy_hold_return_pct']:
-            print(f"\n   ✅ Strategy OUTPERFORMED buy-and-hold by {metrics['total_return_pct'] - metrics['buy_hold_return_pct']:.2f}%")
+            print(f"\n    Strategy OUTPERFORMED buy-and-hold by {metrics['total_return_pct'] - metrics['buy_hold_return_pct']:.2f}%")
         else:
-            print(f"\n   ❌ Strategy UNDERPERFORMED buy-and-hold by {metrics['buy_hold_return_pct'] - metrics['total_return_pct']:.2f}%")
+            print(f"\n    Strategy UNDERPERFORMED buy-and-hold by {metrics['buy_hold_return_pct'] - metrics['total_return_pct']:.2f}%")
         
         print("\n" + "="*60)
-        print("✅ Backtest complete!")
+        print(" Backtest complete!")
         print("="*60 + "\n")
         
         # Optional: Show trade history
         try:
             show_trades = input("Would you like to see all trades? (y/n): ").lower()
             if show_trades == 'y':
-                print("\n📋 Trade History:")
+                print("\n Trade History:")
                 for i, trade in enumerate(results['trades'], 1):
                     print(f"   {i}. {trade}")
         except EOFError:
@@ -182,12 +181,12 @@ def main():
             pass
         
     except ValueError as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n Error: {e}")
     except KeyboardInterrupt:
-        print("\n\n👋 Backtest cancelled by user.")
+        print("\n\n Backtest cancelled by user.")
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n Unexpected error: {e}")
         import traceback
         traceback.print_exc()
 
