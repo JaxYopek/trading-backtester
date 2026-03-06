@@ -1,0 +1,13 @@
+# Core data manipulation
+pandas==2.1.4
+numpy==1.26.2
+
+# API requests
+requests==2.31.0
+
+# For later: FastAPI backend
+fastapi==0.109.0
+uvicorn==0.27.0
+
+# Data visualization (optional for now)
+matplotlib==3.8.2
