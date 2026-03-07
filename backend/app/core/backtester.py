@@ -9,7 +9,6 @@ What is backtesting?
 - Calculates how much money you would have made/lost
 - Helps evaluate if a strategy is profitable before risking real money
 
-Important: Past performance doesn't guarantee future results!
 """
 
 import pandas as pd
@@ -82,6 +81,7 @@ class BacktestEngine:
         print(f"{'='*60}\n")
         
         # Step through each day
+        trade_profits = []
         for date, row in df.iterrows():
             price = row['close']
             signal = row['signal']
@@ -91,6 +91,7 @@ class BacktestEngine:
                 # Buy as many shares as we can afford
                 shares = int(cash / price)
                 if shares > 0:
+                    entry_price = price
                     cost = shares * price
                     cash -= cost
                     trade = Trade(date, 'BUY', price, shares)
@@ -102,11 +103,13 @@ class BacktestEngine:
                 # Sell all shares
                 proceeds = shares * price
                 cash += proceeds
+                trade_profits.append((price - entry_price) * shares)  # Profit from this trade
                 trade = Trade(date, 'SELL', price, shares)
                 self.trades.append(trade)
                 print(f"sell {trade}")
                 shares = 0
             
+
             # Calculate portfolio value (cash + value of stocks)
             portfolio_value = cash + (shares * price)
             portfolio_values.append(portfolio_value)
@@ -115,7 +118,7 @@ class BacktestEngine:
         final_value = portfolio_values[-1]
         
         # Calculate metrics
-        metrics = self._calculate_metrics(portfolio_values, df)
+        metrics = self._calculate_metrics(portfolio_values, trade_profits, df)
         
         # Print summary
         print(f"\n{'='*60}")
@@ -125,6 +128,8 @@ class BacktestEngine:
         print(f"Final Portfolio Value: ${final_value:,.2f}")
         print(f"Total Return: ${final_value - self.initial_capital:,.2f} ({metrics['total_return_pct']:.2f}%)")
         print(f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
+        print(f"Win Rate: {metrics['win_rate']:.2f}")
+        print(f"Profit Factor: {metrics['profit_factor']:.2f}") if metrics['profit_factor'] > 0 else print(f"Profit Factor: N/A")
         print(f"Buy & Hold Return: {metrics['buy_hold_return_pct']:.2f}%")
         print(f"{'='*60}\n")
         
@@ -136,7 +141,7 @@ class BacktestEngine:
             'metrics': metrics,
         }
     
-    def _calculate_metrics(self, portfolio_values: List[float], df: pd.DataFrame) -> Dict:
+    def _calculate_metrics(self, portfolio_values: List[float], trade_profits: List[float], df: pd.DataFrame) -> Dict:
         """
         Calculate performance metrics.
         
@@ -160,10 +165,6 @@ class BacktestEngine:
         # Measures the largest peak-to-trough decline
         peak = portfolio_values[0]
         max_drawdown = 0
-        returns = pd.Series(portfolio_values).pct_change().dropna()
-        mean_return = returns.mean()
-        std_return = returns.std()
-        sharpe_ratio = (mean_return / std_return) * np.sqrt(252) if std_return > 0 else 0
         for value in portfolio_values:
             if value > peak:
                 peak = value
@@ -171,13 +172,31 @@ class BacktestEngine:
             if drawdown > max_drawdown:
                 max_drawdown = drawdown
         
+        num_wins = sum(1 for profit in trade_profits if profit > 0)
+        num_losses = sum(1 for profit in trade_profits if profit < 0)  
+        win_rate = (num_wins / (num_wins + num_losses)) if (num_wins + num_losses) > 0 else 0
+
+        gross_profit = sum(profit for profit in trade_profits if profit > 0)
+        gross_loss = sum(profit for profit in trade_profits if profit < 0)  
+        profit_factor = (gross_profit / abs(gross_loss)) if gross_loss != 0 else float('inf')
+        
+        # Sharpe Ratio
+        # Measures risk-adjusted return: (mean return / std deviation of returns) * sqrt(252)
+        returns = pd.Series(portfolio_values).pct_change().dropna()
+        mean_return = returns.mean()
+        std_return = returns.std()
+        sharpe_ratio = (mean_return / std_return) * np.sqrt(252) if std_return > 0 else 0
+        
+        
         return {
             'total_return': total_return,
             'total_return_pct': total_return_pct,
             'buy_hold_return_pct': buy_hold_return,
             'max_drawdown_pct': max_drawdown,
             'num_trades': len(self.trades),
-            'sharpe_ratio': sharpe_ratio
+            'sharpe_ratio': sharpe_ratio,
+            'win_rate': win_rate,
+            'profit_factor': profit_factor,
         }
 
 
