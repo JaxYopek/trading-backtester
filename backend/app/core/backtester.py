@@ -124,6 +124,7 @@ class BacktestEngine:
         print(f"Total Trades: {len(self.trades)}")
         print(f"Final Portfolio Value: ${final_value:,.2f}")
         print(f"Total Return: ${final_value - self.initial_capital:,.2f} ({metrics['total_return_pct']:.2f}%)")
+        print(f"Sharpe Ratio: {metrics['sharpe_ratio']:.2f}")
         print(f"Buy & Hold Return: {metrics['buy_hold_return_pct']:.2f}%")
         print(f"{'='*60}\n")
         
@@ -132,7 +133,7 @@ class BacktestEngine:
             'final_value': final_value,
             'portfolio_values': portfolio_values,
             'trades': self.trades,
-            'metrics': metrics
+            'metrics': metrics,
         }
     
     def _calculate_metrics(self, portfolio_values: List[float], df: pd.DataFrame) -> Dict:
@@ -143,7 +144,7 @@ class BacktestEngine:
         - Total Return: How much money you made/lost (%)
         - Buy & Hold: What if you just bought and held the whole time?
         - Max Drawdown: Largest drop from peak (worst losing streak)
-        - Sharpe Ratio: Risk-adjusted return (coming in next version)
+        - Sharpe Ratio: Risk-adjusted return
         """
         final_value = portfolio_values[-1]
         total_return = final_value - self.initial_capital
@@ -159,7 +160,10 @@ class BacktestEngine:
         # Measures the largest peak-to-trough decline
         peak = portfolio_values[0]
         max_drawdown = 0
-        
+        returns = pd.Series(portfolio_values).pct_change().dropna()
+        mean_return = returns.mean()
+        std_return = returns.std()
+        sharpe_ratio = (mean_return / std_return) * np.sqrt(252) if std_return > 0 else 0
         for value in portfolio_values:
             if value > peak:
                 peak = value
@@ -172,7 +176,8 @@ class BacktestEngine:
             'total_return_pct': total_return_pct,
             'buy_hold_return_pct': buy_hold_return,
             'max_drawdown_pct': max_drawdown,
-            'num_trades': len(self.trades)
+            'num_trades': len(self.trades),
+            'sharpe_ratio': sharpe_ratio
         }
 
 
