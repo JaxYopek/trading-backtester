@@ -155,8 +155,8 @@ Building this project taught me:
 Planning to add:
 
 ### Phase 2: Enhanced Metrics
-- [ ] Sharpe Ratio for risk-adjusted returns
-- [ ] Win rate and profit factor
+- [x] Sharpe Ratio for risk-adjusted returns
+- [x] Win rate and profit factor
 - [ ] Volatility and standard deviation
 - [ ] More comprehensive trade statistics
 
