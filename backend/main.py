@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.services.data_fetcher import DataFetcher
-from app.core.strategies import MovingAverageCrossover, RSIStrategy
+from app.core.strategies import MACD, MovingAverageCrossover, RSIStrategy
 
 
 
@@ -31,15 +31,18 @@ def choose_strategy():
     print("\nAvailable Strategies:")
     print("1. Moving Average Crossover")
     print("2. RSI Strategy")
-    # Future: Add more strategies here
+    print("3. MACD Strategy")
+    # Adding more strategies
     while True:
-        choice = input("\nWhich strategy would you like to use? (1): ").strip()
+        choice = input("\nWhich strategy would you like to use?: ").strip()
         if choice in ("", "1"):
             return "ma_crossover"
         elif choice == "2":
             return "rsi_strategy"
+        elif choice == "3":
+            return "macd_strategy"
         else:
-            print("Invalid choice. Please enter 1 or 2")
+            print("Invalid choice. Please enter 1, 2, or 3.")
 from app.core.backtester import BacktestEngine
 
 
@@ -138,6 +141,33 @@ def get_rsi_params(data_length=100):
     
     return rsi_period
 
+def get_macd_params(data_length=100):
+    """Prompt for MACD strategy parameters or use defaults."""
+    print("\nStrategy Configuration (MACD Strategy)")
+    print("Press Enter to use defaults")
+    print(f" Hint: You have {data_length} days of data")
+    
+    fast_input = input("Fast EMA period (default 12): ").strip()
+    fast_period = int(fast_input) if fast_input else 12
+    
+    slow_input = input("Slow EMA period (default 26): ").strip()
+    slow_period = int(slow_input) if slow_input else 26
+    
+    signal_input = input("Signal line EMA period (default 9): ").strip()
+    signal_period = int(signal_input) if signal_input else 9
+    
+    # Validate parameters
+    if fast_period >= slow_period:
+        print(" Warning: Fast EMA should be less than Slow EMA. Using defaults (12/26).")
+        return 12, 26, 9
+    
+    if slow_period > data_length:
+        print(f" Error: Slow EMA period ({slow_period}) exceeds data length ({data_length}).")
+        print(f"   This won't generate any signals. Using defaults (12/26/9).")
+        return 12, 26, 9
+    
+    return fast_period, slow_period, signal_period
+
 
 def main():
     """
@@ -186,6 +216,14 @@ def main():
                 rsi_period=RSI_PERIOD
             )
             strategy_desc = f"RSI Strategy ({RSI_PERIOD})"
+        elif strategy_choice == "macd_strategy":
+            FAST_PERIOD, SLOW_PERIOD, SIGNAL_PERIOD = get_macd_params(data_length=len(data))
+            strategy = MACD(
+                short_window=FAST_PERIOD,
+                long_window=SLOW_PERIOD,
+                signal_window=SIGNAL_PERIOD
+            )
+            strategy_desc = f"MACD Strategy ({FAST_PERIOD}/{SLOW_PERIOD}/{SIGNAL_PERIOD})"
         else:
             print("Unknown strategy. Exiting.")
             sys.exit(1)

@@ -99,36 +99,6 @@ class MovingAverageCrossover:
     def __str__(self):
         return self.name
 
-
-# For testing the strategy
-if __name__ == "__main__":
-    # Example: Create some sample data
-    import numpy as np
-    
-    dates = pd.date_range('2023-01-01', periods=200, freq='D')
-    
-    # Simulate a stock price with an upward trend
-    prices = 100 + np.cumsum(np.random.randn(200) * 2)
-    
-    df = pd.DataFrame({
-        'close': prices
-    }, index=dates)
-    
-    # Apply the strategy
-    strategy = MovingAverageCrossover(short_window=10, long_window=30)
-    signals = strategy.generate_signals(df)
-    
-    print(f"Strategy: {strategy}\n")
-    print("Sample of generated signals:")
-    print(signals[['close', 'short_ma', 'long_ma', 'signal', 'position']].tail(10))
-    
-    # Count signals
-    buy_signals = (signals['signal'] == 1).sum()
-    sell_signals = (signals['signal'] == -1).sum()
-    
-    print(f"\nTotal BUY signals: {buy_signals}")
-    print(f"Total SELL signals: {sell_signals}")
-
 class RSIStrategy:
     """
     RSI Strategy
@@ -221,3 +191,71 @@ class RSIStrategy:
     
     def __str__(self):
         return self.name
+    
+class MACD:
+    """
+    MACD Strategy
+    
+    """
+    def __init__(self, short_window: int = 12, long_window: int = 26, signal_window: int = 9):
+        self.short_window = short_window
+        self.long_window = long_window
+        self.signal_window = signal_window
+        self.name = f"MACD ({short_window}/{long_window}/{signal_window})"
+    
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        df = data.copy()
+        
+        # Calculate EMAs
+        df['ema_short'] = df['close'].ewm(span=self.short_window, adjust=False).mean()
+        df['ema_long'] = df['close'].ewm(span=self.long_window, adjust=False).mean()
+        
+        # Calculate MACD line and Signal line
+        df['macd_line'] = df['ema_short'] - df['ema_long']
+        df['signal_line'] = df['macd_line'].ewm(span=self.signal_window, adjust=False).mean()
+        
+        # Generate signals
+        df['signal'] = 0
+        
+        # Buy signal: MACD line crosses above Signal line
+        macd_prev = df['macd_line'].shift(1)
+        signal_prev = df['signal_line'].shift(1)
+        
+        df.loc[(df['macd_line'] > df['signal_line']) & (macd_prev <= signal_prev), 'signal'] = 1
+        
+        # Sell signal: MACD line crosses below Signal line
+        df.loc[(df['macd_line'] < df['signal_line']) & (macd_prev >= signal_prev), 'signal'] = -1
+        
+        return df
+
+
+
+
+# For testing the strategy
+if __name__ == "__main__":
+    # Example: Create some sample data
+    import numpy as np
+    
+    dates = pd.date_range('2023-01-01', periods=200, freq='D')
+    
+    # Simulate a stock price with an upward trend
+    prices = 100 + np.cumsum(np.random.randn(200) * 2)
+    
+    df = pd.DataFrame({
+        'close': prices
+    }, index=dates)
+    
+    # Apply the strategy
+    strategy = MovingAverageCrossover(short_window=10, long_window=30)
+    signals = strategy.generate_signals(df)
+    
+    print(f"Strategy: {strategy}\n")
+    print("Sample of generated signals:")
+    print(signals[['close', 'short_ma', 'long_ma', 'signal', 'position']].tail(10))
+    
+    # Count signals
+    buy_signals = (signals['signal'] == 1).sum()
+    sell_signals = (signals['signal'] == -1).sum()
+    
+    print(f"\nTotal BUY signals: {buy_signals}")
+    print(f"Total SELL signals: {sell_signals}")
