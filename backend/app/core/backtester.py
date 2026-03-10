@@ -121,7 +121,6 @@ class BacktestEngine:
         metrics = self._calculate_metrics(portfolio_values, trade_profits, df)
         
         # Print summary
-        print(f"\n{'='*60}")
         print(f"RESULTS")
         print(f"{'='*60}")
         print(f"Total Trades: {len(self.trades)}")
@@ -131,7 +130,9 @@ class BacktestEngine:
         print(f"Win Rate: {metrics['win_rate']:.2f}")
         print(f"Profit Factor: {metrics['profit_factor']:.2f}") if metrics['profit_factor'] > 0 else print(f"Profit Factor: N/A")
         print(f"Buy & Hold Return: {metrics['buy_hold_return_pct']:.2f}%")
-        print(f"{'='*60}\n")
+        print(f"Standard Deviation of Returns: {metrics['std']:.4f}")
+        print(f"Volatility: {metrics['volatility']:.4f}")
+
         
         return {
             'initial_capital': self.initial_capital,
@@ -197,6 +198,8 @@ class BacktestEngine:
             'sharpe_ratio': sharpe_ratio,
             'win_rate': win_rate,
             'profit_factor': profit_factor,
+            'std': std_return,
+            'volatility': std_return * np.sqrt(252),
         }
 
 
