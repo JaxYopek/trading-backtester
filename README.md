@@ -163,7 +163,7 @@ Planning to add:
 ### Phase 3: Additional Strategies
 - [x] RSI (Relative Strength Index)
 - [ ] Bollinger Bands
-- [ ] MACD (Moving Average Convergence Divergence)
+- [x] MACD (Moving Average Convergence Divergence)
 - [ ] Multiple strategy combinations
 
 ### Phase 4: Visualization

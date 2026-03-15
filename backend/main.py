@@ -13,6 +13,7 @@ How to use:
 import sys
 import os
 from pathlib import Path
+import plotly.graph_objects as go
 
 # Add backend to path
 sys.path.append('/Users/jaxyopek/Desktop/Trading Backtester/backend')
@@ -22,7 +23,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.services.data_fetcher import DataFetcher
-from app.core.strategies import MACD, MovingAverageCrossover, RSIStrategy
+from app.core.strategies import MACD, MovingAverageCrossover, RSIStrategy, BollingerBands
 
 
 
@@ -32,6 +33,7 @@ def choose_strategy():
     print("1. Moving Average Crossover")
     print("2. RSI Strategy")
     print("3. MACD Strategy")
+    print("4. Bollinger Bands Strategy")
     # Adding more strategies
     while True:
         choice = input("\nWhich strategy would you like to use?: ").strip()
@@ -41,8 +43,10 @@ def choose_strategy():
             return "rsi_strategy"
         elif choice == "3":
             return "macd_strategy"
+        elif choice == "4":
+            return "bollinger_bands_strategy"
         else:
-            print("Invalid choice. Please enter 1, 2, or 3.")
+            print("Invalid choice. Please enter 1, 2, 3, or 4.")
 from app.core.backtester import BacktestEngine
 
 
@@ -168,6 +172,16 @@ def get_macd_params(data_length=100):
     
     return fast_period, slow_period, signal_period
 
+def plot_bollinger_bands_plotly(df):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df['close'], mode='lines', name='Close Price'))
+    fig.add_trace(go.Scatter(x=df.index, y=df['upper_band'], mode='lines', name='Upper Band', line=dict(color='red', dash='dash')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['middle_band'], mode='lines', name='Middle Band', line=dict(color='blue')))
+    fig.add_trace(go.Scatter(x=df.index, y=df['lower_band'], mode='lines', name='Lower Band', line=dict(color='green', dash='dash')))
+    fig.update_layout(title='Bollinger Bands', xaxis_title='Date', yaxis_title='Price')
+    fig.show()
+
+
 
 def main():
     """
@@ -224,6 +238,10 @@ def main():
                 signal_window=SIGNAL_PERIOD
             )
             strategy_desc = f"MACD Strategy ({FAST_PERIOD}/{SLOW_PERIOD}/{SIGNAL_PERIOD})"
+        elif strategy_choice == "bollinger_bands_strategy":
+            strategy = BollingerBands()
+            strategy_desc = "Bollinger Bands Strategy"
+            plot_bollinger_bands_plotly(strategy.generate_signals(data))
         else:
             print("Unknown strategy. Exiting.")
             sys.exit(1)

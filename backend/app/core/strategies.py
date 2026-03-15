@@ -259,3 +259,59 @@ if __name__ == "__main__":
     
     print(f"\nTotal BUY signals: {buy_signals}")
     print(f"Total SELL signals: {sell_signals}")
+
+class BollingerBands:
+    """
+    Bollinger Bands Strategy
+    
+    Concept:
+    - Bollinger Bands consist of a middle band (SMA) and two outer bands (standard deviations)
+    - The bands expand and contract based on volatility
+    - Common settings: 20-day SMA, 2 standard deviations
+    
+    Trading Rules:
+    - BUY when price crosses below lower band (potentially oversold)
+    - SELL when price crosses above upper band (potentially overbought)
+    
+    Example:
+    - If price goes from above to below lower band → BUY
+    - If price goes from below to above upper band → SELL
+    """
+    
+    def __init__(self, window: int = 20, num_std_dev: float = 2.0, ddof: int = 1):
+        self.window = window
+        self.num_std_dev = num_std_dev
+        self.ddof = ddof
+        self.name = f"Bollinger Bands ({window}-day, {num_std_dev} std dev)"
+    
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        df = data.copy()
+        
+        # Calculate middle band (SMA)
+        df['middle_band'] = df['close'].rolling(window=self.window).mean()
+        
+        # Calculate standard deviation
+        df['std_dev'] = df['close'].rolling(window=self.window).std(ddof=self.ddof)
+        
+        # Calculate upper and lower bands
+        df['upper_band'] = df['middle_band'] + (self.num_std_dev * df['std_dev'])
+        df['lower_band'] = df['middle_band'] - (self.num_std_dev * df['std_dev'])
+        
+        # Generate signals
+        df['signal'] = 0
+        
+        # Buy signal: Price crosses below lower band
+        price_prev = df['close'].shift(1)
+        lower_prev = df['lower_band'].shift(1)
+        
+        df.loc[(df['close'] < df['lower_band']) & (price_prev >= lower_prev), 'signal'] = 1
+        
+        # Sell signal: Price crosses above upper band
+        upper_prev = df['upper_band'].shift(1)
+        
+        df.loc[(df['close'] > df['upper_band']) & (price_prev <= upper_prev), 'signal'] = -1
+
+        # Drop initial rows where bands are undefined (NaNs)
+        df = df.dropna(subset=['middle_band', 'upper_band', 'lower_band', 'std_dev'])
+
+        return df
