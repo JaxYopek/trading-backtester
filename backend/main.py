@@ -174,11 +174,26 @@ def get_macd_params(data_length=100):
 
 def plot_bollinger_bands_plotly(df):
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=df.index, y=df['close'], mode='lines', name='Close Price'))
+    
+    # Add close price
+    fig.add_trace(go.Scatter(x=df.index, y=df['close'], mode='lines', name='Close Price', line=dict(color='black')))
+    
+    # Add bands
     fig.add_trace(go.Scatter(x=df.index, y=df['upper_band'], mode='lines', name='Upper Band', line=dict(color='red', dash='dash')))
     fig.add_trace(go.Scatter(x=df.index, y=df['middle_band'], mode='lines', name='Middle Band', line=dict(color='blue')))
     fig.add_trace(go.Scatter(x=df.index, y=df['lower_band'], mode='lines', name='Lower Band', line=dict(color='green', dash='dash')))
-    fig.update_layout(title='Bollinger Bands', xaxis_title='Date', yaxis_title='Price')
+    
+    # Mark buy signals (green triangle up)
+    buys = df[df['signal'] == 1]
+    fig.add_trace(go.Scatter(x=buys.index, y=buys['close'], mode='markers', name='Buy Signal', 
+                             marker=dict(color='green', size=10, symbol='triangle-up')))
+    
+    # Mark sell signals (red triangle down)
+    sells = df[df['signal'] == -1]
+    fig.add_trace(go.Scatter(x=sells.index, y=sells['close'], mode='markers', name='Sell Signal', 
+                             marker=dict(color='red', size=10, symbol='triangle-down')))
+    
+    fig.update_layout(title='Bollinger Bands', xaxis_title='Date', yaxis_title='Price', hovermode='x unified')
     fig.show()
 
 
