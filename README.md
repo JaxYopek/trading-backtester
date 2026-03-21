@@ -157,12 +157,12 @@ Planning to add:
 ### Phase 2: Enhanced Metrics
 - [x] Sharpe Ratio for risk-adjusted returns
 - [x] Win rate and profit factor
-- [ ] Volatility and standard deviation
+- [x] Volatility and standard deviation
 - [ ] More comprehensive trade statistics
 
 ### Phase 3: Additional Strategies
 - [x] RSI (Relative Strength Index)
-- [ ] Bollinger Bands
+- [x] Bollinger Bands
 - [x] MACD (Moving Average Convergence Divergence)
 - [ ] Multiple strategy combinations
 
