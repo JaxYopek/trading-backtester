@@ -173,8 +173,8 @@ Planning to add:
 - [ ] Interactive plots with matplotlib/plotly
 
 ### Phase 5: Web Dashboard
-- [ ] FastAPI REST API
-- [ ] React frontend interface
+- [x] FastAPI REST API
+- [x] React frontend interface
 - [ ] Real-time backtest execution
 - [ ] Save and compare results
 - [ ] Strategy parameter optimization

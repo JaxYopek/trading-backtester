@@ -38,10 +38,25 @@ class EquityPoint(BaseModel):
     date: str
     value: float
 
+class BollingerPoint(BaseModel):
+    date: str
+    close: float
+    upper_band: float
+    middle_band: float
+    lower_band: float
+    signal: int
+
 
 class BacktestResponse(BaseModel):
+    strategy: Literal[
+        "ma_crossover",
+        "rsi_strategy",
+        "macd_strategy",
+        "bollinger_bands_strategy",
+    ]
     metrics: MetricSummary
     equity_curve: list[EquityPoint]
+    bollinger_series: list[BollingerPoint] | None = None
 
 
 app = FastAPI(title="Trading Backtester API", version="0.1.0")
@@ -98,7 +113,22 @@ def run_backtest(request: BacktestRequest) -> BacktestResponse:
             for date, value in zip(signal_data.index, portfolio_values)
         ]
 
+        bollinger_series = None
+        if request.strategy == "bollinger_bands_strategy":
+            bollinger_series = [
+                BollingerPoint(
+                    date=str(date.date()),
+                    close=float(row["close"]),
+                    upper_band=float(row["upper_band"]),
+                    middle_band=float(row["middle_band"]),
+                    lower_band=float(row["lower_band"]),
+                    signal=int(row["signal"]),
+                )
+                for date, row in signal_data.iterrows()
+            ]
+
         return BacktestResponse(
+            strategy=request.strategy,
             metrics=MetricSummary(
                 total_return=float(metrics["total_return_pct"]) / 100.0,
                 max_drawdown=float(metrics["max_drawdown_pct"]) / 100.0,
@@ -106,6 +136,7 @@ def run_backtest(request: BacktestRequest) -> BacktestResponse:
                 final_value=float(results["final_value"]),
             ),
             equity_curve=equity_curve,
+            bollinger_series=bollinger_series,
         )
     except HTTPException:
         raise

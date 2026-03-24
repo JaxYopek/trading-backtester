@@ -18,9 +18,20 @@ export interface EquityPoint {
   value: number
 }
 
+export interface BollingerPoint {
+  date: string
+  close: number
+  upper_band: number
+  middle_band: number
+  lower_band: number
+  signal: number
+}
+
 export interface BacktestResponse {
+  strategy: StrategyType
   metrics: MetricSummary
   equity_curve: EquityPoint[]
+  bollinger_series?: BollingerPoint[] | null
 }
 
 export async function runBacktest(payload: BacktestRequest): Promise<BacktestResponse> {
