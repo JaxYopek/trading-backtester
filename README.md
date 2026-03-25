@@ -29,19 +29,7 @@ Or use the setup script:
 
 Get a free API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key). It's instant and free for up to 500 calls/day.
 
-### 3. Configure API Key (Securely!)
-
-**Important**: Never hardcode API keys in your code!
-
-```bash
-cd backend
-
-# Copy the example env file
-cp .env.example .env
-
-# Edit .env and add your actual API key
-# The .env file is gitignored and won't be committed to GitHub
-```
+### 3. Configure API Key
 
 Your `.env` file should look like:
 ```
