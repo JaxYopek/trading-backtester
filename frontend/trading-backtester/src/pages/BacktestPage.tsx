@@ -16,6 +16,18 @@ export default function BacktestPage() {
   const [strategy, setStrategy] = useState<StrategyType>('ma_crossover')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // Moving Average Crossover params
+  const [shortWindow, setShortWindow] = useState(20)
+  const [longWindow, setLongWindow] = useState(50)
+  
+  // RSI Strategy params
+  const [rsiPeriod, setRsiPeriod] = useState(14)
+  
+  // MACD Strategy params
+  const [fastPeriod, setFastPeriod] = useState(12)
+  const [slowPeriod, setSlowPeriod] = useState(26)
+  const [signalPeriod, setSignalPeriod] = useState(9)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -38,6 +50,12 @@ export default function BacktestPage() {
         symbol: symbol.trim().toUpperCase(),
         initialCapital,
         strategy,
+        shortWindow: strategy === 'ma_crossover' ? shortWindow : undefined,
+        longWindow: strategy === 'ma_crossover' ? longWindow : undefined,
+        rsiPeriod: strategy === 'rsi_strategy' ? rsiPeriod : undefined,
+        fastPeriod: strategy === 'macd_strategy' ? fastPeriod : undefined,
+        slowPeriod: strategy === 'macd_strategy' ? slowPeriod : undefined,
+        signalPeriod: strategy === 'macd_strategy' ? signalPeriod : undefined,
       })
 
       navigate('/results', { state: { result: data } })
@@ -86,6 +104,82 @@ export default function BacktestPage() {
             ))}
           </select>
         </label>
+
+        {/* Moving Average Crossover Strategy Fields */}
+        {strategy === 'ma_crossover' && (
+          <>
+            <label>
+              Short MA Window
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={shortWindow}
+                onChange={(event) => setShortWindow(event.target.valueAsNumber)}
+              />
+            </label>
+            <label>
+              Long MA Window
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={longWindow}
+                onChange={(event) => setLongWindow(event.target.valueAsNumber)}
+              />
+            </label>
+          </>
+        )}
+
+        {/* RSI Strategy Fields */}
+        {strategy === 'rsi_strategy' && (
+          <label>
+            RSI Period
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={rsiPeriod}
+              onChange={(event) => setRsiPeriod(event.target.valueAsNumber)}
+            />
+          </label>
+        )}
+
+        {/* MACD Strategy Fields */}
+        {strategy === 'macd_strategy' && (
+          <>
+            <label>
+              Fast EMA Period
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={fastPeriod}
+                onChange={(event) => setFastPeriod(event.target.valueAsNumber)}
+              />
+            </label>
+            <label>
+              Slow EMA Period
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={slowPeriod}
+                onChange={(event) => setSlowPeriod(event.target.valueAsNumber)}
+              />
+            </label>
+            <label>
+              Signal Line Period
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={signalPeriod}
+                onChange={(event) => setSignalPeriod(event.target.valueAsNumber)}
+              />
+            </label>
+          </>
+        )}
 
         {error ? <p className="error-text">{error}</p> : null}
 

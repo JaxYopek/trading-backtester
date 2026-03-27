@@ -4,6 +4,15 @@ export interface BacktestRequest {
   symbol: string
   initialCapital: number
   strategy: StrategyType
+  // Moving Average Crossover params
+  shortWindow?: number
+  longWindow?: number
+  // RSI Strategy params
+  rsiPeriod?: number
+  // MACD Strategy params
+  fastPeriod?: number
+  slowPeriod?: number
+  signalPeriod?: number
 }
 
 export interface MetricSummary {

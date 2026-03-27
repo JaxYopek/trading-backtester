@@ -25,6 +25,15 @@ class BacktestRequest(BaseModel):
         "macd_strategy",
         "bollinger_bands_strategy",
     ]
+    # Moving Average Crossover params
+    shortWindow: int | None = None
+    longWindow: int | None = None
+    # RSI Strategy params
+    rsiPeriod: int | None = None
+    # MACD Strategy params
+    fastPeriod: int | None = None
+    slowPeriod: int | None = None
+    signalPeriod: int | None = None
 
 
 class MetricSummary(BaseModel):
@@ -70,13 +79,19 @@ app.add_middleware(
 )
 
 
-def _resolve_strategy(name: str):
+def _resolve_strategy(name: str, **kwargs):
     if name == "ma_crossover":
-        return MovingAverageCrossover()
+        short_window = kwargs.get("shortWindow", 20)
+        long_window = kwargs.get("longWindow", 50)
+        return MovingAverageCrossover(short_window=short_window, long_window=long_window)
     if name == "rsi_strategy":
-        return RSIStrategy()
+        rsi_period = kwargs.get("rsiPeriod", 14)
+        return RSIStrategy(rsi_period=rsi_period)
     if name == "macd_strategy":
-        return MACD()
+        fast_period = kwargs.get("fastPeriod", 12)
+        slow_period = kwargs.get("slowPeriod", 26)
+        signal_period = kwargs.get("signalPeriod", 9)
+        return MACD(short_window=fast_period, long_window=slow_period, signal_window=signal_period)
     if name == "bollinger_bands_strategy":
         return BollingerBands()
     raise HTTPException(status_code=400, detail="Unsupported strategy")
@@ -94,7 +109,15 @@ def run_backtest(request: BacktestRequest) -> BacktestResponse:
     try:
         fetcher = DataFetcher(api_key)
         market_data = fetcher.get_daily_data(request.symbol.upper(), outputsize="compact")
-        strategy = _resolve_strategy(request.strategy)
+        strategy = _resolve_strategy(
+            request.strategy,
+            shortWindow=request.shortWindow,
+            longWindow=request.longWindow,
+            rsiPeriod=request.rsiPeriod,
+            fastPeriod=request.fastPeriod,
+            slowPeriod=request.slowPeriod,
+            signalPeriod=request.signalPeriod,
+        )
         signal_data = strategy.generate_signals(market_data)
 
         if signal_data.empty:
