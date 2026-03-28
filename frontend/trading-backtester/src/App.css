@@ -74,35 +74,49 @@
 
 .metrics-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 14px;
+  margin-bottom: 32px;
 }
 
 .metric-card {
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 12px;
+  padding: 16px;
   background: var(--social-bg);
+  transition: all 0.2s ease;
+}
+
+.metric-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.16);
+  transform: translateY(-2px);
 }
 
 .metric-card h2 {
   margin: 0;
-  font-size: 16px;
-}
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);  flex: 1;}
 
 .metric-card p {
-  margin-top: 8px;
-  font-size: 22px;
+  margin-top: 10px;
+  font-size: 24px;
   font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 0;
 }
 
 .equity-chart {
-  margin-top: 20px;
+  margin-top: 32px;
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px;
+  border-radius: 12px;
+  padding: 20px;
   background: var(--social-bg);
   min-height: 380px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .chart-fallback {
@@ -115,26 +129,65 @@
 }
 
 .equity-preview {
-  margin-top: 20px;
+  margin-top: 32px;
 }
 
-.equity-preview ul {
-  list-style: none;
-  margin: 10px 0 0;
-  padding: 0;
+.equity-preview h2 {
+  margin-bottom: 16px;
+  font-size: 20px;
+}
+
+.equity-points-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.equity-point-card {
+  background: var(--social-bg);
   border: 1px solid var(--border);
   border-radius: 10px;
+  padding: 16px;
+  transition: all 0.3s ease;
 }
 
-.equity-preview li {
+.equity-point-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.12);
+  transform: translateY(-4px);
+}
+
+.point-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  opacity: 0.8;
+}
+
+.point-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin-bottom: 8px;
+}
+
+.point-change {
+  font-size: 14px;
+  font-weight: 600;
   display: flex;
-  justify-content: space-between;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 4px;
 }
 
-.equity-preview li:last-child {
-  border-bottom: 0;
+.point-change.positive {
+  color: #16a34a;
+}
+
+.point-change.negative {
+  color: #dc2626;
 }
 
 .plotly-container {
@@ -148,4 +201,76 @@
 .plotly-container svg {
   max-width: 100%;
   height: auto;
+}
+
+/* Tooltip Styles */
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.info-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: help;
+  transition: all 0.2s ease;
+}
+
+.info-icon:hover {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.tooltip-container {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-text {
+  visibility: hidden;
+  width: 220px;
+  background-color: #1f2937;
+  color: #ffffff;
+  text-align: left;
+  border-radius: 6px;
+  padding: 10px;
+  position: absolute;
+  z-index: 1000;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -110px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.tooltip-text::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+  visibility: visible;
+  opacity: 1;
 }

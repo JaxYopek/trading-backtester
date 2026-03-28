@@ -23,7 +23,7 @@ function toFiniteNumber(value: unknown): number | null {
   return null
 }
 
-function buildPath(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
+function buildSmoothPath(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
   if (values.length === 0) {
     return ''
   }
@@ -32,34 +32,47 @@ function buildPath(values: number[], width: number, height: number, pad: number,
   const ySpan = height - pad * 2
   const safeDenominator = max - min === 0 ? 1 : max - min
 
-  return values
-    .map((value, index) => {
-      const x = pad + (values.length === 1 ? xSpan / 2 : (index / (values.length - 1)) * xSpan)
-      const y = pad + ((max - value) / safeDenominator) * ySpan
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)},${y.toFixed(2)}`
-    })
-    .join(' ')
+  let path = ''
+
+  values.forEach((value, index) => {
+    const x = pad + (values.length === 1 ? xSpan / 2 : (index / (values.length - 1)) * xSpan)
+    const y = pad + ((max - value) / safeDenominator) * ySpan
+
+    if (index === 0) {
+      path += `M${x.toFixed(2)},${y.toFixed(2)}`
+    } else {
+      const prevValue = values[index - 1]
+      const prevX = pad + ((index - 1) / (values.length - 1)) * xSpan
+      const prevY = pad + ((max - prevValue) / safeDenominator) * ySpan
+
+      const controlX = (prevX + x) / 2
+      const controlY = (prevY + y) / 2
+
+      path += ` Q${controlX.toFixed(2)},${controlY.toFixed(2)} ${x.toFixed(2)},${y.toFixed(2)}`
+    }
+  })
+
+  return path
 }
 
-function buildFillArea(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
-  const linePath = buildPath(values, width, height, pad, min, max)
+function buildSmoothFillArea(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
+  const linePath = buildSmoothPath(values, width, height, pad, min, max)
   if (!linePath) return ''
-  
+
   const xSpan = width - pad * 2
   const ySpan = height - pad * 2
-  const safeDenominator = max - min === 0 ? 1 : max - min
-  
+
   const bottomY = pad + ySpan
   const topRightX = pad + xSpan
-  
+
   return `${linePath} L${topRightX},${bottomY} L${pad},${bottomY} Z`
 }
 
 function MiniLineChart({ title, series }: { title: string; series: NumericSeries[] }) {
-  const width = 900
-  const height = 380
-  const pad = 50
-  const gridLines = 5
+  const width = 1000
+  const height = 450
+  const pad = 60
+  const gridLines = 6
 
   const allValues = series.flatMap((s) => s.values)
 
@@ -70,6 +83,7 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
   const min = Math.min(...allValues)
   const max = Math.max(...allValues)
   const range = max - min === 0 ? 1 : max - min
+  const padding = range * 0.05
 
   const xSpan = width - pad * 2
   const ySpan = height - pad * 2
@@ -85,8 +99,9 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
         y1={y}
         x2={width - pad}
         y2={y}
-        stroke="rgba(200, 200, 200, 0.3)"
+        stroke="rgba(200, 200, 200, 0.4)"
         strokeWidth="1"
+        strokeDasharray="4,4"
       />
     )
   }
@@ -100,10 +115,11 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
       <text
         key={`y-label-${i}`}
         x={pad - 12}
-        y={y + 4}
+        y={y + 5}
         textAnchor="end"
         fontSize="12"
-        fill="rgb(100, 100, 100)"
+        fontWeight="500"
+        fill="rgb(107, 114, 128)"
       >
         ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </text>
@@ -112,27 +128,30 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
 
   return (
     <>
-      <h2 style={{ marginBottom: '16px' }}>{title}</h2>
-      <div style={{ background: 'white', borderRadius: '8px', border: '1px solid rgb(220, 220, 220)', padding: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="auto" style={{ display: 'block' }} role="img" aria-label={title}>
+      <h2 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}>{title}</h2>
+      <div style={{ background: 'white', borderRadius: '12px', border: '1px solid rgb(229, 231, 235)', padding: '20px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' }}>
+        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="auto" style={{ display: 'block' }} role="img" aria-label={title} xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id={`gradient-${title}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(59, 130, 246, 0.2)" />
+              <stop offset="0%" stopColor="rgba(59, 130, 246, 0.3)" />
               <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
             </linearGradient>
+            <filter id={`shadow-${title}`}>
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
+            </filter>
           </defs>
           
           {/* Background */}
-          <rect x={pad} y={pad} width={xSpan} height={ySpan} fill="rgba(250, 250, 250, 1)" stroke="rgb(200, 200, 200)" strokeWidth="1" />
+          <rect x={pad} y={pad} width={xSpan} height={ySpan} fill="rgba(249, 250, 251, 1)" stroke="rgb(229, 231, 235)" strokeWidth="1.5" rx="4" />
           
           {/* Grid lines */}
           {gridLineElements}
           
           {/* Y-axis */}
-          <line x1={pad} y1={pad} x2={pad} y2={pad + ySpan} stroke="rgb(80, 80, 80)" strokeWidth="2" />
+          <line x1={pad} y1={pad} x2={pad} y2={pad + ySpan} stroke="rgb(107, 114, 128)" strokeWidth="2" />
           
           {/* X-axis */}
-          <line x1={pad} y1={pad + ySpan} x2={width - pad} y2={pad + ySpan} stroke="rgb(80, 80, 80)" strokeWidth="2" />
+          <line x1={pad} y1={pad + ySpan} x2={width - pad} y2={pad + ySpan} stroke="rgb(107, 114, 128)" strokeWidth="2" />
           
           {/* Y-axis labels */}
           {yLabels}
@@ -140,32 +159,33 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
           {/* X-axis label */}
           <text
             x={width / 2}
-            y={height - 12}
+            y={height - 15}
             textAnchor="middle"
-            fontSize="12"
-            fill="rgb(100, 100, 100)"
+            fontSize="13"
+            fontWeight="600"
+            fill="rgb(107, 114, 128)"
           >
-            Time
+            Trading Days
           </text>
           
           {/* Y-axis label */}
           <text
             x="20"
-            y="20"
+            y="30"
             textAnchor="start"
-            fontSize="12"
+            fontSize="13"
             fontWeight="600"
-            fill="rgb(80, 80, 80)"
+            fill="rgb(107, 114, 128)"
           >
-            Value ($)
+            Portfolio Value
           </text>
           
           {/* Fill areas under lines */}
           {series.map((line) => (
             <path
               key={`${line.label}-fill`}
-              d={buildFillArea(line.values, width, height, pad, min, max)}
-              fill={`rgba(59, 130, 246, 0.08)`}
+              d={buildSmoothFillArea(line.values, width, height, pad, min - padding, max + padding)}
+              fill={`url(#gradient-${title})`}
               stroke="none"
             />
           ))}
@@ -174,25 +194,53 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
           {series.map((line) => (
             <path
               key={line.label}
-              d={buildPath(line.values, width, height, pad, min, max)}
+              d={buildSmoothPath(line.values, width, height, pad, min - padding, max + padding)}
               fill="none"
               stroke={line.color}
-              strokeWidth="3"
+              strokeWidth="4"
               strokeLinecap="round"
               strokeLinejoin="round"
               vectorEffect="non-scaling-stroke"
+              filter={`url(#shadow-${title})`}
             />
           ))}
+          
+          {/* Data point markers */}
+          {series.map((line) =>
+            line.values.map((value, index) => {
+              const xSpanCalc = width - pad * 2
+              const ySpanCalc = height - pad * 2
+              const safeDenominator = (max + padding) - (min - padding) === 0 ? 1 : (max + padding) - (min - padding)
+              const x = pad + (line.values.length === 1 ? xSpanCalc / 2 : (index / (line.values.length - 1)) * xSpanCalc)
+              const y = pad + (((max + padding) - value) / safeDenominator) * ySpanCalc
+              
+              // Only show markers on key points (first, last, and every 10th point if many points)
+              const showMarker = index === 0 || index === line.values.length - 1 || (line.values.length > 20 && index % Math.ceil(line.values.length / 5) === 0)
+              
+              return showMarker ? (
+                <circle
+                  key={`${line.label}-marker-${index}`}
+                  cx={x}
+                  cy={y}
+                  r="5"
+                  fill={line.color}
+                  stroke="white"
+                  strokeWidth="2"
+                  opacity="0.8"
+                />
+              ) : null
+            })
+          )}
         </svg>
       </div>
-      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgb(220, 220, 220)' }}>
-        <p className="lead" style={{ margin: '8px 0' }}>
-          <strong>Range:</strong> ${min.toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${max.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgb(229, 231, 235)' }}>
+        <p style={{ margin: '8px 0', fontSize: '14px', color: 'rgb(107, 114, 128)', fontWeight: '500' }}>
+          <strong>Range:</strong> ${(min - padding).toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${(max + padding).toLocaleString(undefined, { maximumFractionDigits: 2 })}
         </p>
-        <p className="lead" style={{ margin: '8px 0', fontSize: '14px', color: 'rgb(100, 100, 100)' }}>
+        <p style={{ margin: '8px 0', fontSize: '13px', color: 'rgb(107, 114, 128)' }}>
           {series.map((line) => (
-            <span key={line.label} style={{ marginRight: '16px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ display: 'inline-block', width: '12px', height: '12px', backgroundColor: line.color, borderRadius: '2px' }}></span>
+            <span key={line.label} style={{ marginRight: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ display: 'inline-block', width: '14px', height: '14px', backgroundColor: line.color, borderRadius: '3px' }}></span>
               {line.label}
             </span>
           ))}
@@ -205,6 +253,26 @@ function MiniLineChart({ title, series }: { title: string; series: NumericSeries
 export default function ResultsPage() {
   const location = useLocation()
   const result = (location.state as { result?: BacktestResponse } | null)?.result
+
+  const metricDescriptions: Record<string, string> = {
+    'Total Return': 'The overall profit/loss percentage generated by your trading strategy.',
+    'Buy & Hold Return': 'What you would have made if you simply bought and held the stock the entire time.',
+    'Max Drawdown': 'The largest peak-to-trough decline experienced during the backtest period.',
+    'Sharpe Ratio': 'Risk-adjusted return metric. Higher values indicate better returns per unit of risk.',
+    'Win Rate': 'Percentage of trades that were profitable (or closed with a gain).',
+    'Profit Factor': 'Gross profit divided by gross loss. Higher ratios indicate better profitability.',
+    'Number of Trades': 'Total number of buy and sell trades executed during the backtest.',
+    'Final Value': 'The ending portfolio value after all trades and the backtest period.',
+    'Volatility': 'Annualized standard deviation of daily returns (measures price fluctuations).',
+    'Std Dev of Returns': 'Daily standard deviation of portfolio returns (measure of day-to-day volatility).',
+  }
+
+  const InfoIcon = ({ metric }: { metric: string }) => (
+    <div className="tooltip-container">
+      <div className="info-icon">i</div>
+      <div className="tooltip-text">{metricDescriptions[metric]}</div>
+    </div>
+  )
 
   if (!result) {
     return (
@@ -274,20 +342,74 @@ export default function ResultsPage() {
 
       <section className="metrics-grid">
         <article className="metric-card">
-          <h2>Total Return</h2>
-          <p>{(result.metrics.total_return * 100).toFixed(2)}%</p>
+          <div className="metric-header">
+            <h2>Total Return</h2>
+            <InfoIcon metric="Total Return" />
+          </div>
+          <p>{result.metrics.total_return_pct.toFixed(2)}%</p>
         </article>
         <article className="metric-card">
-          <h2>Max Drawdown</h2>
+          <div className="metric-header">
+            <h2>Buy & Hold Return</h2>
+            <InfoIcon metric="Buy & Hold Return" />
+          </div>
+          <p>{result.metrics.buy_hold_return.toFixed(2)}%</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Max Drawdown</h2>
+            <InfoIcon metric="Max Drawdown" />
+          </div>
           <p>{(result.metrics.max_drawdown * 100).toFixed(2)}%</p>
         </article>
         <article className="metric-card">
-          <h2>Trades</h2>
+          <div className="metric-header">
+            <h2>Sharpe Ratio</h2>
+            <InfoIcon metric="Sharpe Ratio" />
+          </div>
+          <p>{result.metrics.sharpe_ratio.toFixed(2)}</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Win Rate</h2>
+            <InfoIcon metric="Win Rate" />
+          </div>
+          <p>{(result.metrics.win_rate * 100).toFixed(2)}%</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Profit Factor</h2>
+            <InfoIcon metric="Profit Factor" />
+          </div>
+          <p>{result.metrics.profit_factor.toFixed(2)}</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Number of Trades</h2>
+            <InfoIcon metric="Number of Trades" />
+          </div>
           <p>{result.metrics.number_of_trades}</p>
         </article>
         <article className="metric-card">
-          <h2>Final Value</h2>
+          <div className="metric-header">
+            <h2>Final Value</h2>
+            <InfoIcon metric="Final Value" />
+          </div>
           <p>${result.metrics.final_value.toLocaleString()}</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Volatility</h2>
+            <InfoIcon metric="Volatility" />
+          </div>
+          <p>{result.metrics.volatility.toFixed(4)}</p>
+        </article>
+        <article className="metric-card">
+          <div className="metric-header">
+            <h2>Std Dev of Returns</h2>
+            <InfoIcon metric="Std Dev of Returns" />
+          </div>
+          <p>{result.metrics.std.toFixed(4)}</p>
         </article>
       </section>
 
@@ -312,14 +434,21 @@ export default function ResultsPage() {
 
       <section className="equity-preview">
         <h2>Recent Equity Points</h2>
-        <ul>
-          {recentPoints.map((point) => (
-            <li key={point.date}>
-              <span>{point.date}</span>
-              <strong>${point.value.toLocaleString()}</strong>
-            </li>
-          ))}
-        </ul>
+        <div className="equity-points-container">
+          {recentPoints.map((point, index) => {
+            const percentChange = ((point.value - result.metrics.final_value) / result.metrics.final_value) * 100
+            const isPositive = index === recentPoints.length - 1 || (index > 0 && recentPoints[index].value > recentPoints[index - 1].value)
+            return (
+              <div key={point.date} className="equity-point-card">
+                <div className="point-date">{point.date}</div>
+                <div className="point-value">${point.value.toLocaleString(undefined, { maximumFractionDigits: 2 })}</div>
+                <div className={`point-change ${isPositive ? 'positive' : 'negative'}`}>
+                  {isPositive ? '↗' : '↘'} {Math.abs(percentChange).toFixed(2)}%
+                </div>
+              </div>
+            )
+          })}
+        </div>
       </section>
     </main>
   )

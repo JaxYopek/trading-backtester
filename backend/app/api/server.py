@@ -38,9 +38,16 @@ class BacktestRequest(BaseModel):
 
 class MetricSummary(BaseModel):
     total_return: float
+    total_return_pct: float
     max_drawdown: float
     number_of_trades: int
     final_value: float
+    buy_hold_return: float
+    sharpe_ratio: float
+    win_rate: float
+    profit_factor: float
+    std: float
+    volatility: float
 
 
 class EquityPoint(BaseModel):
@@ -154,9 +161,16 @@ def run_backtest(request: BacktestRequest) -> BacktestResponse:
             strategy=request.strategy,
             metrics=MetricSummary(
                 total_return=float(metrics["total_return_pct"]) / 100.0,
+                total_return_pct=float(metrics["total_return_pct"]),
                 max_drawdown=float(metrics["max_drawdown_pct"]) / 100.0,
                 number_of_trades=int(metrics["num_trades"]),
                 final_value=float(results["final_value"]),
+                buy_hold_return=float(metrics["buy_hold_return_pct"]),
+                sharpe_ratio=float(metrics["sharpe_ratio"]),
+                win_rate=float(metrics["win_rate"]),
+                profit_factor=float(metrics["profit_factor"]) if metrics["profit_factor"] != float('inf') else 0,
+                std=float(metrics["std"]),
+                volatility=float(metrics["volatility"]),
             ),
             equity_curve=equity_curve,
             bollinger_series=bollinger_series,

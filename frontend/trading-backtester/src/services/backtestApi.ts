@@ -17,9 +17,16 @@ export interface BacktestRequest {
 
 export interface MetricSummary {
   total_return: number
+  total_return_pct: number
   max_drawdown: number
   number_of_trades: number
   final_value: number
+  buy_hold_return: number
+  sharpe_ratio: number
+  win_rate: number
+  profit_factor: number
+  std: number
+  volatility: number
 }
 
 export interface EquityPoint {
