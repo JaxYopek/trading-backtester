@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import type { BacktestResponse } from '../services/backtestApi'
 import { BollingerBandsChart } from '../components/BollingerBandsChart'
+import { EquityCurveChart } from '../components/EquityCurveChart'
 
 type NumericSeries = {
   label: string
@@ -414,16 +415,7 @@ export default function ResultsPage() {
       </section>
 
       <section className="equity-chart">
-        <MiniLineChart
-          title="Equity Curve"
-          series={[
-            {
-              label: 'Equity',
-              color: '#2563eb',
-              values: equityCurve.map((point) => point.value),
-            },
-          ]}
-        />
+        <EquityCurveChart data={equityCurve} />
       </section>
 
       {isBollinger && bollingerSeries.length > 0 ? (

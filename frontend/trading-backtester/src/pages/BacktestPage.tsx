@@ -9,6 +9,17 @@ const strategyOptions: Array<{ label: string; value: StrategyType }> = [
   { label: 'Bollinger Bands Strategy', value: 'bollinger_bands_strategy' },
 ]
 
+const strategyDescriptions: Record<StrategyType, string> = {
+  ma_crossover:
+    'A trend-following strategy that generates buy signals when a short-term moving average crosses above a long-term average, and sell signals when it crosses below. Best for trending markets with clear momentum.',
+  rsi_strategy:
+    'Uses the Relative Strength Index to identify overbought (>70) and oversold (<30) conditions. Buy when RSI is oversold, sell when overbought. Effective in range-bound, sideways markets.',
+  macd_strategy:
+    'Combines exponential moving averages to identify momentum changes and trend direction. Generates signals when the MACD line crosses the signal line. Good for identifying trend reversals and momentum shifts.',
+  bollinger_bands_strategy:
+    'Uses volatility-based bands around a simple moving average. Buy when price touches the lower band, sell at the upper band. Effective for mean-reversion strategies in volatile markets.',
+}
+
 export default function BacktestPage() {
   const navigate = useNavigate()
   const [symbol, setSymbol] = useState('AAPL')
@@ -103,6 +114,9 @@ export default function BacktestPage() {
               </option>
             ))}
           </select>
+          <p style={{ marginTop: '8px', fontSize: '14px', color: 'rgb(107, 114, 128)', fontStyle: 'italic' }}>
+            {strategyDescriptions[strategy]}
+          </p>
         </label>
 
         {/* Moving Average Crossover Strategy Fields */}
