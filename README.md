@@ -1,4 +1,4 @@
-# Trading Backtester 📈
+# Trading Backtester 
 
 A Python-based backtesting system I built to learn about algorithmic trading and test strategies on historical stock data. This project helped me understand financial data analysis, strategy development, and performance evaluation.
 
