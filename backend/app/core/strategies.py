@@ -315,3 +315,121 @@ class BollingerBands:
         df = df.dropna(subset=['middle_band', 'upper_band', 'lower_band', 'std_dev'])
 
         return df
+
+
+class MultipleStrategyCombination:
+    """
+    Multiple Strategy Combination
+    ==============================
+    
+    Combines signals from multiple strategies using a voting mechanism.
+    
+    Concept:
+    - Run multiple trading strategies on the same data
+    - Combine their signals using consensus (majority voting)
+    - Reduces false signals by requiring agreement from multiple strategies
+    - More robust trading signals through diversification of indicators
+    
+    Voting Rules:
+    - BUY signal: 2+ strategies agree to BUY
+    - SELL signal: 2+ strategies agree to SELL
+    - HOLD: Less than 2 strategies agree
+    
+    Example:
+    - If MA Crossover says BUY and RSI says BUY → Consensus BUY
+    - If MA Crossover says BUY but RSI says HOLD → Consensus HOLD
+    """
+    
+    def __init__(self, strategies: list = None):
+        """
+        Initialize with a list of trading strategies.
+        
+        Args:
+            strategies: List of strategy instances to combine
+                       (defaults to MA Crossover, RSI, and MACD)
+        """
+        if strategies is None:
+            # Default combination: MA Crossover, RSI, and MACD
+            strategies = [
+                MovingAverageCrossover(short_window=20, long_window=50),
+                RSIStrategy(rsi_period=14),
+                MACD(short_window=12, long_window=26, signal_window=9),
+            ]
+        
+        self.strategies = strategies
+        self.strategy_names = [str(s) for s in strategies]
+        self.name = f"Combined ({', '.join(self.strategy_names)})"
+    
+    def generate_signals(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Generate combined buy/sell signals from multiple strategies.
+        
+        Args:
+            data: DataFrame with price data (must have 'close' column)
+        
+        Returns:
+            DataFrame with added columns:
+            - 'signal': 1 for BUY, -1 for SELL, 0 for HOLD (consensus)
+            - Individual strategy signals and indicators
+        
+        How it works:
+        1. Generate signals from each strategy
+        2. For each day, count how many strategies agree on BUY/SELL
+        3. Generate consensus signal using majority voting (≥2 strategies)
+        4. Include all individual strategy signals for transparency
+        """
+        df = data.copy()
+        
+        # Generate signals from all strategies
+        strategy_signals = {}
+        all_data_cols = [df]
+        
+        for i, strategy in enumerate(self.strategies):
+            signals_df = strategy.generate_signals(data)
+            strategy_signals[i] = signals_df
+            
+            # Extract just the signal column with a unique name
+            signal_col = signals_df[['signal']].copy()
+            signal_col.columns = [f'signal_{i}']
+            all_data_cols.append(signal_col)
+        
+        # Combine all data
+        df = pd.concat(all_data_cols, axis=1)
+        
+        # Count agreement votes for each day
+        signal_cols = [f'signal_{i}' for i in range(len(self.strategies))]
+        df['buy_votes'] = (df[signal_cols] == 1).sum(axis=1)
+        df['sell_votes'] = (df[signal_cols] == -1).sum(axis=1)
+        
+        # Generate consensus signal (threshold: 2+ strategies must agree)
+        df['signal'] = 0
+        df.loc[df['buy_votes'] >= 2, 'signal'] = 1
+        df.loc[df['sell_votes'] >= 2, 'signal'] = -1
+        
+        # Store all strategy signals for reference
+        df['num_strategies'] = len(self.strategies)
+        
+        # Include selected columns from each strategy for visualization
+        for i, strategy_df in strategy_signals.items():
+            # Add common indicator columns if they exist
+            indicator_cols = []
+            if 'short_ma' in strategy_df.columns:
+                indicator_cols.extend(['short_ma', 'long_ma'])
+            if 'rsi' in strategy_df.columns:
+                indicator_cols.append('rsi')
+            if 'macd_line' in strategy_df.columns:
+                indicator_cols.extend(['macd_line', 'signal_line'])
+            if 'upper_band' in strategy_df.columns:
+                indicator_cols.extend(['upper_band', 'middle_band', 'lower_band'])
+            
+            for col in indicator_cols:
+                if col in strategy_df.columns and col not in df.columns:
+                    df[col] = strategy_df[col]
+        
+        # Clean up
+        df = df.dropna()
+        
+        return df
+    
+    def __str__(self):
+        return self.name

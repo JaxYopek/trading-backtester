@@ -1,13 +1,12 @@
-import { useLocation } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import type { BacktestResponse } from '../services/backtestApi'
 import { BollingerBandsChart } from '../components/BollingerBandsChart'
 import { EquityCurveChart } from '../components/EquityCurveChart'
-
-type NumericSeries = {
-  label: string
-  color: string
-  values: number[]
-}
+import { MAChart } from '../components/MAChart'
+import { RSIChart } from '../components/RSIChart'
+import { MACDChart } from '../components/MACDChart'
+import { buildRunLabel, loadLastRun, saveLastRun, saveRun, strategyLabel, type BacktestRun } from '../services/savedResultsStore'
 
 function isValidDate(value: unknown): value is string {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value))
@@ -24,236 +23,19 @@ function toFiniteNumber(value: unknown): number | null {
   return null
 }
 
-function buildSmoothPath(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
-  if (values.length === 0) {
-    return ''
-  }
-
-  const xSpan = width - pad * 2
-  const ySpan = height - pad * 2
-  const safeDenominator = max - min === 0 ? 1 : max - min
-
-  let path = ''
-
-  values.forEach((value, index) => {
-    const x = pad + (values.length === 1 ? xSpan / 2 : (index / (values.length - 1)) * xSpan)
-    const y = pad + ((max - value) / safeDenominator) * ySpan
-
-    if (index === 0) {
-      path += `M${x.toFixed(2)},${y.toFixed(2)}`
-    } else {
-      const prevValue = values[index - 1]
-      const prevX = pad + ((index - 1) / (values.length - 1)) * xSpan
-      const prevY = pad + ((max - prevValue) / safeDenominator) * ySpan
-
-      const controlX = (prevX + x) / 2
-      const controlY = (prevY + y) / 2
-
-      path += ` Q${controlX.toFixed(2)},${controlY.toFixed(2)} ${x.toFixed(2)},${y.toFixed(2)}`
-    }
-  })
-
-  return path
-}
-
-function buildSmoothFillArea(values: number[], width: number, height: number, pad: number, min: number, max: number): string {
-  const linePath = buildSmoothPath(values, width, height, pad, min, max)
-  if (!linePath) return ''
-
-  const xSpan = width - pad * 2
-  const ySpan = height - pad * 2
-
-  const bottomY = pad + ySpan
-  const topRightX = pad + xSpan
-
-  return `${linePath} L${topRightX},${bottomY} L${pad},${bottomY} Z`
-}
-
-function MiniLineChart({ title, series }: { title: string; series: NumericSeries[] }) {
-  const width = 1000
-  const height = 450
-  const pad = 60
-  const gridLines = 6
-
-  const allValues = series.flatMap((s) => s.values)
-
-  if (allValues.length === 0 || series.every((s) => s.values.length === 0)) {
-    return <p className="chart-fallback">No plottable points were returned for this run.</p>
-  }
-
-  const min = Math.min(...allValues)
-  const max = Math.max(...allValues)
-  const range = max - min === 0 ? 1 : max - min
-  const padding = range * 0.05
-
-  const xSpan = width - pad * 2
-  const ySpan = height - pad * 2
-
-  // Generate grid lines
-  const gridLineElements = []
-  for (let i = 0; i <= gridLines; i++) {
-    const y = pad + (i / gridLines) * ySpan
-    gridLineElements.push(
-      <line
-        key={`grid-h-${i}`}
-        x1={pad}
-        y1={y}
-        x2={width - pad}
-        y2={y}
-        stroke="rgba(200, 200, 200, 0.4)"
-        strokeWidth="1"
-        strokeDasharray="4,4"
-      />
-    )
-  }
-
-  // Generate Y-axis labels
-  const yLabels = []
-  for (let i = 0; i <= gridLines; i++) {
-    const value = max - (i / gridLines) * range
-    const y = pad + (i / gridLines) * ySpan
-    yLabels.push(
-      <text
-        key={`y-label-${i}`}
-        x={pad - 12}
-        y={y + 5}
-        textAnchor="end"
-        fontSize="12"
-        fontWeight="500"
-        fill="rgb(107, 114, 128)"
-      >
-        ${value.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-      </text>
-    )
-  }
-
-  return (
-    <>
-      <h2 style={{ marginBottom: '20px', fontSize: '18px', fontWeight: '700' }}>{title}</h2>
-      <div style={{ background: 'white', borderRadius: '12px', border: '1px solid rgb(229, 231, 235)', padding: '20px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="auto" style={{ display: 'block' }} role="img" aria-label={title} xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id={`gradient-${title}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="rgba(59, 130, 246, 0.3)" />
-              <stop offset="100%" stopColor="rgba(59, 130, 246, 0)" />
-            </linearGradient>
-            <filter id={`shadow-${title}`}>
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15" />
-            </filter>
-          </defs>
-          
-          {/* Background */}
-          <rect x={pad} y={pad} width={xSpan} height={ySpan} fill="rgba(249, 250, 251, 1)" stroke="rgb(229, 231, 235)" strokeWidth="1.5" rx="4" />
-          
-          {/* Grid lines */}
-          {gridLineElements}
-          
-          {/* Y-axis */}
-          <line x1={pad} y1={pad} x2={pad} y2={pad + ySpan} stroke="rgb(107, 114, 128)" strokeWidth="2" />
-          
-          {/* X-axis */}
-          <line x1={pad} y1={pad + ySpan} x2={width - pad} y2={pad + ySpan} stroke="rgb(107, 114, 128)" strokeWidth="2" />
-          
-          {/* Y-axis labels */}
-          {yLabels}
-          
-          {/* X-axis label */}
-          <text
-            x={width / 2}
-            y={height - 15}
-            textAnchor="middle"
-            fontSize="13"
-            fontWeight="600"
-            fill="rgb(107, 114, 128)"
-          >
-            Trading Days
-          </text>
-          
-          {/* Y-axis label */}
-          <text
-            x="20"
-            y="30"
-            textAnchor="start"
-            fontSize="13"
-            fontWeight="600"
-            fill="rgb(107, 114, 128)"
-          >
-            Portfolio Value
-          </text>
-          
-          {/* Fill areas under lines */}
-          {series.map((line) => (
-            <path
-              key={`${line.label}-fill`}
-              d={buildSmoothFillArea(line.values, width, height, pad, min - padding, max + padding)}
-              fill={`url(#gradient-${title})`}
-              stroke="none"
-            />
-          ))}
-          
-          {/* Lines */}
-          {series.map((line) => (
-            <path
-              key={line.label}
-              d={buildSmoothPath(line.values, width, height, pad, min - padding, max + padding)}
-              fill="none"
-              stroke={line.color}
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-              filter={`url(#shadow-${title})`}
-            />
-          ))}
-          
-          {/* Data point markers */}
-          {series.map((line) =>
-            line.values.map((value, index) => {
-              const xSpanCalc = width - pad * 2
-              const ySpanCalc = height - pad * 2
-              const safeDenominator = (max + padding) - (min - padding) === 0 ? 1 : (max + padding) - (min - padding)
-              const x = pad + (line.values.length === 1 ? xSpanCalc / 2 : (index / (line.values.length - 1)) * xSpanCalc)
-              const y = pad + (((max + padding) - value) / safeDenominator) * ySpanCalc
-              
-              // Only show markers on key points (first, last, and every 10th point if many points)
-              const showMarker = index === 0 || index === line.values.length - 1 || (line.values.length > 20 && index % Math.ceil(line.values.length / 5) === 0)
-              
-              return showMarker ? (
-                <circle
-                  key={`${line.label}-marker-${index}`}
-                  cx={x}
-                  cy={y}
-                  r="5"
-                  fill={line.color}
-                  stroke="white"
-                  strokeWidth="2"
-                  opacity="0.8"
-                />
-              ) : null
-            })
-          )}
-        </svg>
-      </div>
-      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgb(229, 231, 235)' }}>
-        <p style={{ margin: '8px 0', fontSize: '14px', color: 'rgb(107, 114, 128)', fontWeight: '500' }}>
-          <strong>Range:</strong> ${(min - padding).toLocaleString(undefined, { maximumFractionDigits: 2 })} - ${(max + padding).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-        </p>
-        <p style={{ margin: '8px 0', fontSize: '13px', color: 'rgb(107, 114, 128)' }}>
-          {series.map((line) => (
-            <span key={line.label} style={{ marginRight: '20px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ display: 'inline-block', width: '14px', height: '14px', backgroundColor: line.color, borderRadius: '3px' }}></span>
-              {line.label}
-            </span>
-          ))}
-        </p>
-      </div>
-    </>
-  )
-}
-
 export default function ResultsPage() {
   const location = useLocation()
-  const result = (location.state as { result?: BacktestResponse } | null)?.result
+  const routeState = location.state as { result?: BacktestResponse; run?: BacktestRun } | null
+  const routeRun = routeState?.run
+  const currentRun = routeState?.run ?? loadLastRun()
+  const result = currentRun?.result ?? routeState?.result
+  const [saveStatus, setSaveStatus] = useState('')
+
+  useEffect(() => {
+    if (routeRun) {
+      saveLastRun(routeRun)
+    }
+  }, [routeRun])
 
   const metricDescriptions: Record<string, string> = {
     'Total Return': 'The overall profit/loss percentage generated by your trading strategy.',
@@ -282,6 +64,16 @@ export default function ResultsPage() {
         <p className="lead">No backtest results yet. Run a backtest first.</p>
       </main>
     )
+  }
+
+  const handleSaveRun = () => {
+    if (!currentRun) {
+      setSaveStatus('Run metadata is unavailable, so this result cannot be saved from the current page state.')
+      return
+    }
+
+    const saved = saveRun(currentRun)
+    setSaveStatus(`Saved ${saved.label} to this browser session.`)
   }
 
   const equityCurve = Array.isArray(result.equity_curve)
@@ -339,7 +131,42 @@ export default function ResultsPage() {
   return (
     <main className="page">
       <h1>Results</h1>
-      <p className="lead">Latest run summary</p>
+      <p className="lead">{currentRun ? buildRunLabel(currentRun) : 'Latest run summary'}</p>
+
+      <section className="form-card" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          <button type="button" onClick={handleSaveRun} disabled={!currentRun}>
+            Save Result
+          </button>
+          <Link to="/saved-results" style={{ fontWeight: '600' }}>
+            View Saved Results
+          </Link>
+        </div>
+        {saveStatus ? <p style={{ marginBottom: 0, marginTop: '12px', color: 'rgb(75, 85, 99)' }}>{saveStatus}</p> : null}
+      </section>
+
+      {currentRun ? (
+        <section className="form-card" style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: 'rgb(107, 114, 128)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Symbol</div>
+              <div style={{ fontWeight: '700' }}>{currentRun.request.symbol.toUpperCase()}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: 'rgb(107, 114, 128)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Strategy</div>
+              <div style={{ fontWeight: '700' }}>{strategyLabel(currentRun.request.strategy)}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: 'rgb(107, 114, 128)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Initial Capital</div>
+              <div style={{ fontWeight: '700' }}>${currentRun.request.initialCapital.toLocaleString()}</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '12px', color: 'rgb(107, 114, 128)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Saved In Session</div>
+              <div style={{ fontWeight: '700' }}>Yes</div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className="metrics-grid">
         <article className="metric-card">
@@ -415,12 +242,70 @@ export default function ResultsPage() {
       </section>
 
       <section className="equity-chart">
-        <EquityCurveChart data={equityCurve} />
+        <EquityCurveChart data={equityCurve} tradeSignals={result.trade_signals} />
       </section>
+
+      {result.trade_signals && result.trade_signals.length > 0 ? (
+        <section className="trade-signals-summary">
+          <h2>Trading Signals</h2>
+          <p style={{ marginBottom: '16px', fontSize: '14px', color: 'rgb(107, 114, 128)' }}>
+            {result.trade_signals.length} signal(s) generated during the backtest period
+          </p>
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+            gap: '12px',
+            maxHeight: '400px',
+            overflowY: 'auto',
+            padding: '12px',
+            backgroundColor: 'rgb(249, 250, 251)',
+            borderRadius: '8px',
+            border: '1px solid rgb(229, 231, 235)'
+          }}>
+            {result.trade_signals.map((signal, index) => (
+              <div key={index} style={{
+                padding: '12px',
+                backgroundColor: signal.signal === 1 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                borderLeft: `4px solid ${signal.signal === 1 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'}`,
+                borderRadius: '6px',
+                fontSize: '14px'
+              }}>
+                <div style={{ fontWeight: '600', color: signal.signal === 1 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)' }}>
+                  {signal.signal === 1 ? '▲ BUY' : '▼ SELL'}
+                </div>
+                <div style={{ color: 'rgb(107, 114, 128)', marginTop: '4px' }}>
+                  {signal.date}
+                </div>
+                <div style={{ color: 'rgb(75, 85, 99)', marginTop: '4px', fontSize: '13px' }}>
+                  @ ${signal.price.toFixed(2)}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       {isBollinger && bollingerSeries.length > 0 ? (
         <section className="equity-chart">
           <BollingerBandsChart data={bollingerSeries} />
+        </section>
+      ) : null}
+
+      {result.strategy === 'ma_crossover' && result.ma_series && result.ma_series.length > 0 ? (
+        <section className="equity-chart">
+          <MAChart data={result.ma_series} />
+        </section>
+      ) : null}
+
+      {result.strategy === 'rsi_strategy' && result.rsi_series && result.rsi_series.length > 0 ? (
+        <section className="equity-chart">
+          <RSIChart data={result.rsi_series} />
+        </section>
+      ) : null}
+
+      {result.strategy === 'macd_strategy' && result.macd_series && result.macd_series.length > 0 ? (
+        <section className="equity-chart">
+          <MACDChart data={result.macd_series} />
         </section>
       ) : null}
 

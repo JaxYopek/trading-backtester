@@ -13,41 +13,98 @@ I created this as a learning project to understand how trading strategies work b
 
 ## Quick Start
 
-### 1. Install Dependencies
+### Prerequisites
+
+1. **Get API Key**
+   - Visit [Alpha Vantage](https://www.alphavantage.co/support/#api-key)
+   - Get a free API key (instant, up to 500 calls/day)
+
+2. **Node.js & npm** (for frontend)
+   - Download from https://nodejs.org/
+   - Verify installation: `node --version && npm --version`
+
+3. **Python 3.8+** (for backend)
+   - Already installed if you're using a recent system
+   - Verify: `python --version`
+
+### Setup Backend
 
 ```bash
 cd backend
+
+# Create virtual environment
+python -m venv .venv
+
+# Activate virtual environment
+# On macOS/Linux:
+source .venv/bin/activate
+# On Windows:
+.venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-Or use the setup script:
+### Configure API Key
+
+Create a `.env` file in the `backend/` directory:
+
 ```bash
-./setup.sh
+cd backend
+echo "ALPHA_VANTAGE_API_KEY=your_actual_key_here" > .env
 ```
 
-### 2. Get API Key
-
-Get a free API key from [Alpha Vantage](https://www.alphavantage.co/support/#api-key). It's instant and free for up to 500 calls/day.
-
-### 3. Configure API Key
-
-Your `.env` file should look like:
+Or manually create `backend/.env`:
 ```
 ALPHA_VANTAGE_API_KEY=your_actual_key_here
 ```
 
-### 4. Install python-dotenv
-
-```bash
-pip install python-dotenv
-```
-
-This library loads environment variables from the `.env` file.
-
-### 5. Run a Backtest
+### Start Backend Server
 
 ```bash
 cd backend
+
+# Activate virtual environment (if not already active)
+source .venv/bin/activate
+
+# Start FastAPI server
+python -m uvicorn app.api.server:app --reload --port 8000
+```
+
+The backend will be available at: `http://localhost:8000`
+
+### Setup & Start Frontend
+
+```bash
+cd frontend/trading-backtester
+
+# Install dependencies (first time only)
+npm install
+
+# Start development server
+npm run dev
+```
+
+The frontend will be available at: `http://localhost:5173`
+
+### Access the Application
+
+Once both servers are running:
+
+1. **Open browser** → `http://localhost:5173`
+2. **Navigate to "Backtest"** → Configure strategy and run backtest
+3. **View "Results"** → See charts, metrics, and performance analysis
+4. **Save Results** → Click **Save Result** on the results page to keep a session-only copy
+5. **Compare Strategies** → Run side-by-side strategy comparison
+6. **Open "Saved Runs"** → Review, export, compare, or reopen saved session results
+
+### Run CLI Backtest (Optional)
+
+You can also run backtests directly from command line (backend only):
+
+```bash
+cd backend
+source .venv/bin/activate
 python main.py
 ```
 
@@ -80,6 +137,40 @@ Simulates trading by:
 
 ### 4. **Main Script** (`main.py`)
 The entry point that connects all components and runs the backtest.
+
+## Available Strategies
+
+The platform includes several built-in trading strategies:
+
+1. **Moving Average Crossover**
+   - Buy: Short MA crosses above Long MA
+   - Sell: Short MA crosses below Long MA
+   - Default: 20-day / 50-day MAs
+   - Best for: Trending markets
+
+2. **RSI (Relative Strength Index)**
+   - Buy: RSI crosses above 30 (oversold → neutral)
+   - Sell: RSI crosses below 70 (overbought → neutral)
+   - Default: 14-day period
+   - Best for: Range-bound markets
+
+3. **MACD (Moving Average Convergence Divergence)**
+   - Buy: MACD line crosses above Signal line
+   - Sell: MACD line crosses below Signal line
+   - Default: 12/26/9 periods
+   - Best for: Momentum and trend identification
+
+4. **Bollinger Bands**
+   - Buy: Price touches lower band (mean reversion)
+   - Sell: Price touches upper band
+   - Default: 20-day SMA, 2 standard deviations
+   - Best for: Volatile, range-bound markets
+
+5. **Combined Strategy** (Consensus Voting)
+   - Combines all 4 strategies: MA Crossover, RSI, MACD, and Bollinger Bands
+   - Buy/Sell requires 2+ strategies to agree
+   - Blends momentum (MA, RSI, MACD) and mean-reversion (Bollinger) approaches
+   - Best for: Risk-averse traders seeking robust signals
 
 ## Example Output
 
@@ -142,29 +233,30 @@ Building this project taught me:
 
 Planning to add:
 
-### Phase 2: Enhanced Metrics
+### Phase 2: Enhanced Metrics 
 - [x] Sharpe Ratio for risk-adjusted returns
 - [x] Win rate and profit factor
 - [x] Volatility and standard deviation
-- [ ] More comprehensive trade statistics
+- [x] More comprehensive trade statistics
 
-### Phase 3: Additional Strategies
+### Phase 3: Additional Strategies 
 - [x] RSI (Relative Strength Index)
 - [x] Bollinger Bands
 - [x] MACD (Moving Average Convergence Divergence)
-- [ ] Multiple strategy combinations
+- [x] Multiple strategy combinations (consensus voting)
 
 ### Phase 4: Visualization
-- [ ] Portfolio value charts over time
-- [ ] Buy/sell signal markers on price charts
-- [ ] Performance comparison visualizations
-- [ ] Interactive plots with matplotlib/plotly
+- [x] Portfolio value charts over time (Plotly)
+- [x] Buy/sell signal markers on price charts
+- [x] Performance comparison visualizations
+- [x] Interactive plots with Plotly
+- [x] Strategy-specific technical analysis charts (MA, RSI, MACD, Bollinger Bands)
 
 ### Phase 5: Web Dashboard
 - [x] FastAPI REST API
 - [x] React frontend interface
-- [ ] Real-time backtest execution
-- [ ] Save and compare results
+- [x] Real-time backtest execution
+- [x] Save and compare historical results (session-only in the browser)
 - [ ] Strategy parameter optimization
 
 ## Resources

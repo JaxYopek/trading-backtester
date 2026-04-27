@@ -1,4 +1,4 @@
-export type StrategyType = 'ma_crossover' | 'rsi_strategy' | 'macd_strategy' | 'bollinger_bands_strategy'
+export type StrategyType = 'ma_crossover' | 'rsi_strategy' | 'macd_strategy' | 'bollinger_bands_strategy' | 'combined_strategy'
 
 export interface BacktestRequest {
   symbol: string
@@ -34,6 +34,36 @@ export interface EquityPoint {
   value: number
 }
 
+export interface TradeSignal {
+  date: string
+  signal: number  // 1 for BUY, -1 for SELL
+  price: number
+}
+
+export interface MAPoint {
+  date: string
+  close: number
+  short_ma: number
+  long_ma: number
+  signal: number
+}
+
+export interface RSIPoint {
+  date: string
+  close: number
+  rsi: number
+  signal: number
+}
+
+export interface MACDPoint {
+  date: string
+  close: number
+  macd_line: number
+  signal_line: number
+  histogram: number
+  signal: number
+}
+
 export interface BollingerPoint {
   date: string
   close: number
@@ -47,6 +77,10 @@ export interface BacktestResponse {
   strategy: StrategyType
   metrics: MetricSummary
   equity_curve: EquityPoint[]
+  trade_signals?: TradeSignal[] | null
+  ma_series?: MAPoint[] | null
+  rsi_series?: RSIPoint[] | null
+  macd_series?: MACDPoint[] | null
   bollinger_series?: BollingerPoint[] | null
 }
 

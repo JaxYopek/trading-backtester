@@ -1,12 +1,14 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { runBacktest, type BacktestResponse, type StrategyType } from '../services/backtestApi'
+import type { BacktestRun } from '../services/savedResultsStore'
 
 const strategyOptions: Array<{ label: string; value: StrategyType }> = [
   { label: 'Moving Average Crossover', value: 'ma_crossover' },
   { label: 'RSI Strategy', value: 'rsi_strategy' },
   { label: 'MACD Strategy', value: 'macd_strategy' },
   { label: 'Bollinger Bands Strategy', value: 'bollinger_bands_strategy' },
+  { label: 'Combined Strategy (All 4)', value: 'combined_strategy' },
 ]
 
 const strategyDescriptions: Record<StrategyType, string> = {
@@ -18,6 +20,8 @@ const strategyDescriptions: Record<StrategyType, string> = {
     'Combines exponential moving averages to identify momentum changes and trend direction. Generates signals when the MACD line crosses the signal line. Good for identifying trend reversals and momentum shifts.',
   bollinger_bands_strategy:
     'Uses volatility-based bands around a simple moving average. Buy when price touches the lower band, sell at the upper band. Effective for mean-reversion strategies in volatile markets.',
+  combined_strategy:
+    'Combines all 4 strategies (MA Crossover, RSI, MACD, Bollinger Bands) using consensus voting. A buy signal requires 2+ strategies to agree, reducing false signals. Blends momentum and mean-reversion approaches for robust signals. Great for risk-averse traders.',
 }
 
 export default function BacktestPage() {
@@ -61,15 +65,30 @@ export default function BacktestPage() {
         symbol: symbol.trim().toUpperCase(),
         initialCapital,
         strategy,
-        shortWindow: strategy === 'ma_crossover' ? shortWindow : undefined,
-        longWindow: strategy === 'ma_crossover' ? longWindow : undefined,
-        rsiPeriod: strategy === 'rsi_strategy' ? rsiPeriod : undefined,
-        fastPeriod: strategy === 'macd_strategy' ? fastPeriod : undefined,
-        slowPeriod: strategy === 'macd_strategy' ? slowPeriod : undefined,
-        signalPeriod: strategy === 'macd_strategy' ? signalPeriod : undefined,
+        shortWindow: strategy === 'ma_crossover' || strategy === 'combined_strategy' ? shortWindow : undefined,
+        longWindow: strategy === 'ma_crossover' || strategy === 'combined_strategy' ? longWindow : undefined,
+        rsiPeriod: strategy === 'rsi_strategy' || strategy === 'combined_strategy' ? rsiPeriod : undefined,
+        fastPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? fastPeriod : undefined,
+        slowPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? slowPeriod : undefined,
+        signalPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? signalPeriod : undefined,
       })
 
-      navigate('/results', { state: { result: data } })
+      const run: BacktestRun = {
+        request: {
+          symbol: symbol.trim().toUpperCase(),
+          initialCapital,
+          strategy,
+          shortWindow: strategy === 'ma_crossover' || strategy === 'combined_strategy' ? shortWindow : undefined,
+          longWindow: strategy === 'ma_crossover' || strategy === 'combined_strategy' ? longWindow : undefined,
+          rsiPeriod: strategy === 'rsi_strategy' || strategy === 'combined_strategy' ? rsiPeriod : undefined,
+          fastPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? fastPeriod : undefined,
+          slowPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? slowPeriod : undefined,
+          signalPeriod: strategy === 'macd_strategy' || strategy === 'combined_strategy' ? signalPeriod : undefined,
+        },
+        result: data,
+      }
+
+      navigate('/results', { state: { run, result: data } })
     } catch (submitError) {
       const message = submitError instanceof Error ? submitError.message : 'Unknown error'
       setError(message)
@@ -192,6 +211,83 @@ export default function BacktestPage() {
                 onChange={(event) => setSignalPeriod(event.target.valueAsNumber)}
               />
             </label>
+          </>
+        )}
+
+        {/* Combined Strategy Fields (shows all three sets of parameters) */}
+        {strategy === 'combined_strategy' && (
+          <>
+            <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <legend style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>Moving Average Parameters</legend>
+              <label>
+                Short MA Window
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={shortWindow}
+                  onChange={(event) => setShortWindow(event.target.valueAsNumber)}
+                />
+              </label>
+              <label>
+                Long MA Window
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={longWindow}
+                  onChange={(event) => setLongWindow(event.target.valueAsNumber)}
+                />
+              </label>
+            </fieldset>
+
+            <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <legend style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>RSI Parameters</legend>
+              <label>
+                RSI Period
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={rsiPeriod}
+                  onChange={(event) => setRsiPeriod(event.target.valueAsNumber)}
+                />
+              </label>
+            </fieldset>
+
+            <fieldset style={{ border: '1px solid #e5e7eb', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <legend style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>MACD Parameters</legend>
+              <label>
+                Fast EMA Period
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={fastPeriod}
+                  onChange={(event) => setFastPeriod(event.target.valueAsNumber)}
+                />
+              </label>
+              <label>
+                Slow EMA Period
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={slowPeriod}
+                  onChange={(event) => setSlowPeriod(event.target.valueAsNumber)}
+                />
+              </label>
+              <label>
+                Signal Line Period
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={signalPeriod}
+                  onChange={(event) => setSignalPeriod(event.target.valueAsNumber)}
+                />
+              </label>
+            </fieldset>
           </>
         )}
 
